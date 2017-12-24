@@ -42,12 +42,12 @@ if (($? != 0)); then
    echo last test failed
 fi
 
-coverage run -a score.py --ppp=100 --rfc=1 --rdfc=1 --rfbp=3 --lbsf=0.01 results.csv
+coverage run -a score.py --ppp=100 --rfc=1 --rdfc=1 --rfbp=3 --lbsf=0.01 -v results.csv
 if (($? != 0)); then
    echo last test failed
 fi
 
-coverage run -a score.py --doubles results.csv
+coverage run -a score.py --doubles -v results.csv
 if (($? != 0)); then
    echo last test failed
 fi
