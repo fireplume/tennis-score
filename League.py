@@ -2,6 +2,7 @@ import logging
 import sys
 
 from DoublesTeam import *
+from exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError
 
 logger = logging.getLogger("League")
 logger.setLevel(logging.DEBUG)
@@ -40,6 +41,8 @@ class League:
         League._SINGLETON = self
 
     def last_match_index(self, play_type: PlayingEntity.PlayType):
+        if len(self._games[play_type].keys()) == 0:
+            return 0
         return max(self._games[play_type].keys())
 
     def playing_entity_name_exists(self, playing_entity_name: str):
@@ -48,6 +51,9 @@ class League:
         return False
 
     def add_playing_entity(self, playing_entity: PlayingEntity):
+        if playing_entity.get_name() in self._name_to_entity:
+            raise PlayingEntityAlreadyExistsError("Player already exist")
+
         self._playing_entity[playing_entity.get_type()][playing_entity.get_name()] = playing_entity
         self._name_to_entity[playing_entity.get_name()] = playing_entity
 
@@ -105,6 +111,13 @@ class League:
         """
         if league_match_index == -1:
             league_match_index = self._match_index[play_type]
+
+        if player not in self._players_matches_played[play_type]:
+            raise PlayingEntityDoesNotExistError("Player %s not registered for %s" % (player, play_type))
+
+        if league_match_index not in self._players_matches_played[play_type][player]:
+            return 0
+
         return self._players_matches_played[play_type][player][league_match_index]
 
     def fill_in_the_blanks(self, match_index, play_type):
@@ -115,7 +128,7 @@ class League:
 
     def get_playing_entity(self, name):
         if name not in self._name_to_entity:
-            raise Exception("Playing entity %s does not exist!" % name)
+            raise PlayingEntityDoesNotExistError("Playing entity %s does not exist!" % name)
         entity = self._name_to_entity[name]
         return self._playing_entity[entity.get_type()][name]
 

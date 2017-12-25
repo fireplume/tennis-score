@@ -145,6 +145,10 @@ class PlayingEntity(metaclass=ABCMeta):
             match_index = last_index
         return self._play_level_scoring_factor[match_index]
 
+    def iter_play_level_scoring_factor(self):
+        for league_index in self._play_level_scoring_factor:
+            yield league_index,  self._play_level_scoring_factor[league_index]
+
     def reset_rankings(self, play_type: PlayType):
         self._entity_data[play_type].reset_rankings()
 

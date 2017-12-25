@@ -154,8 +154,12 @@ class ScoreProcessor:
         p2_won_games = game.get_games_won(player2.get_name())
         total_games_played = p1_won_games + p2_won_games
 
-        p1_points = p1_won_games/total_games_played*self._points_per_game
-        p2_points = p2_won_games/total_games_played*self._points_per_game
+        if total_games_played == 0:
+            p1_points = 0
+            p2_points = 0
+        else:
+            p1_points = p1_won_games/total_games_played*self._points_per_game
+            p2_points = p2_won_games/total_games_played*self._points_per_game
 
         p1_earned_points = p1_points * compute_data['ranking_factors']['p1_ranking_factor'] * \
             compute_data['ranking_factors']['p1_diff_ranking_factor'] * \

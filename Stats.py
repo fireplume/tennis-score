@@ -3,6 +3,7 @@ from enum import Enum
 import logging
 import copy
 from utils import *
+from exceptions import InitError, OverwriteError, BackToTheFutureError
 
 logger = logging.getLogger("stats")
 logger.setLevel(logging.DEBUG)
@@ -99,28 +100,6 @@ def index_selector(f):
         return f(self, *args, **kwargs)
 
     return f_wrapper
-
-
-class InitError(Exception):
-    def __init__(self, msg):
-        super(InitError, self).__init__(msg)
-        self.msg = msg
-
-    def __str__(self):
-        return self.msg
-
-
-class OverwriteError(Exception):
-    def __init__(self, msg):
-        super(OverwriteError, self).__init__(msg)
-        self.msg = msg
-
-    def __str__(self):
-        return self.msg
-
-
-class BackToTheFutureError(Exception):
-    pass
 
 
 class Stats:

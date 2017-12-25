@@ -1,5 +1,6 @@
 from League import *
 from interfaces import *
+from exceptions import PlayingEntityDoesNotExistError
 
 
 class Game(BaseGame):
@@ -55,7 +56,7 @@ class Game(BaseGame):
         if not Game.LEAGUE.playing_entity_name_exists(self._p2):
             exception_string.append("Playing entity '%s' is not registered with the league!" % self._p2)
         if exception_string:
-            raise Exception("\n".join(exception_string))
+            raise PlayingEntityDoesNotExistError("\n".join(exception_string))
 
         self._data['name'][1] = self._p1.lower()
         self._data['games_won'][self._p1.lower()] = self._p1_games_won

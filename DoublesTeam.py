@@ -18,12 +18,27 @@ class DoublesTeam(PlayingEntity):
                                           initial_points)
 
         self._players = [player1, player2]
+        self._level_override = dict()
 
     def is_in_team(self, player_name):
         if player_name.lower() == self._players[0].get_name() or \
                         player_name.lower() == self._players[1].get_name():
             return True
         return False
+
+    def update_play_level_scoring_factor(self, play_level_scoring_factor: float,
+                                         play_type: PlayingEntity.PlayType,
+                                         match_index: int):
+        if play_type != PlayingEntity.PlayType.DOUBLES:
+            raise Exception("Trying to set play level for singles player on team object!")
+
+        super(DoublesTeam, self).update_play_level_scoring_factor(play_level_scoring_factor,
+                                                                  play_type,
+                                                                  match_index)
+
+        # Usually, level is computed from the level of both singles players, but if it is set
+        # explicitly, respect that.
+        self._level_override[match_index] = play_level_scoring_factor
 
     def get_play_level_scoring_factor(self, play_type: PlayingEntity.PlayType, match_index=-1):
         """
@@ -33,6 +48,14 @@ class DoublesTeam(PlayingEntity):
 
         if play_type != PlayingEntity.PlayType.DOUBLES:
             raise Exception("Asking for singles play level score factor for a doubles team!")
+
+        latest_override_index = -1
+        for index in self._level_override:
+            if match_index <= index and index > latest_override_index:
+                latest_override_index = index
+
+        if latest_override_index != -1:
+            return self._level_override[latest_override_index]
 
         # We want the SINGLES playing factor
         factor1 = self._players[0].get_play_level_scoring_factor(PlayingEntity.PlayType.SINGLES, match_index)
