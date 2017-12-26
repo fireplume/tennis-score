@@ -246,7 +246,6 @@ Emulate current point system based on games won vs games lost without considerat
     if arguments.verbose:
         LoggerHandler.get_instance().reset_all_level(logging.DEBUG)
         LoggerHandler.set_default_level(logging.DEBUG)
-        # logging.basicConfig(level=logging.DEBUG)
 
     if arguments.cmd == "input_csv":
         if arguments.league_break_in_score_factor > 0.5:

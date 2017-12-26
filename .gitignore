@@ -1,2 +1,11 @@
+# Test files
+*.csv
+# Coverage related files
 .coverage
 htmlcov
+htmlcov
+# IDE related files
+venv
+venv1
+tennis-score.iml
+.idea
