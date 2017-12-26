@@ -201,7 +201,7 @@ class League:
                                    play_level_scoring_factor, 1, 0)
                 if team.get_name() not in self._playing_entity[PlayingEntity.PlayType.DOUBLES]:
                     self.add_playing_entity(team)
-                logger.debug("  Doubles team created: %s" % team.get_name())
+                # logger.debug("  Doubles team created: %s" % team.get_name())
 
     def get_doubles_team(self, player_name_1, player_name_2):
         for team_name in self._playing_entity[PlayingEntity.PlayType.DOUBLES]:

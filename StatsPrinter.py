@@ -176,11 +176,13 @@ class StatsPrinter:
                     in_filter = True
                     break
 
+            index += 1
+
             if not in_filter:
                 continue
 
-            index += 1
             print(game)
+
             if index >= match_index:
                 break
         print()

@@ -76,25 +76,26 @@ class ScoreProcessor:
            player2.get_name() not in self._player_filter:
             return
 
-        p1_match_played = compute_data['match_played'][1]
-        p2_match_played = compute_data['match_played'][2]
+        # Can't rely on compute_data information here as it doesn't contain player match index as of
+        # the league match index.
+        p1_match_played = self._league.get_player_matches_played(league_match_index, play_type, player1.get_name())
+        p2_match_played = self._league.get_player_matches_played(league_match_index, play_type, player2.get_name())
+        p1_ranking_break_in = compute_data['ranking_factors']['league_break_in_score_factor'][1] != 1.0
+        p2_ranking_break_in = compute_data['ranking_factors']['league_break_in_score_factor'][2] != 1.0
 
         logger.debug("######################################################")
-        logger.debug("Stats for game prior to current one")
+        logger.debug("Stats for match")
+        logger.debug("-----------------------------------")
         logger.debug("League match index: %d" % league_match_index)
-        logger.debug("Player 1 match index: %d" % p1_match_played)
-        logger.debug("Player 2 match index: %d" % p2_match_played)
-        logger.debug("Player 1 ranking break in period: %s" %
-                     compute_data['ranking_factors']['league_break_in_score_factor'][1] == 1.0)
-        logger.debug("Player 2 ranking break in period: %s" %
-                     compute_data['ranking_factors']['league_break_in_score_factor'][2] == 1.0)
+        logger.debug("Ranking break in period score factor: %2.3f" % self._league_break_in_score_factor)
         logger.debug("-------------------")
         logger.debug("%-20s %16s %16s" % ("Players", player1.get_name(), player2.get_name()))
         logger.debug("%-20s %16d %16d" % ("Match Played", p1_match_played, p2_match_played))
-        logger.debug("%-20s %16.3f %16.3f" % ("Points yet", player1.get_cumulative_points(p1_match_played-1, play_type),
+        logger.debug("%-20s %16.3f %16.3f" % ("Points before", player1.get_cumulative_points(p1_match_played-1, play_type),
                                               player2.get_cumulative_points(p2_match_played-1, play_type)))
-        logger.debug("%-20s %16d %16d" % ("Ranking", player1.get_ranking(p1_match_played-1, play_type),
+        logger.debug("%-20s %16d %16d" % ("Ranking Before", player1.get_ranking(p1_match_played-1, play_type),
                                           player2.get_ranking(p2_match_played-1, play_type)))
+        logger.debug("%-20s %16s %16s" % ("Ranking Break in", p1_ranking_break_in, p2_ranking_break_in))
         logger.debug("-------------------")
         logger.debug("Status for current match index")
         logger.debug("%-20s %16d %16d" % ("Games Won", compute_data['won'][1], compute_data['won'][2]))
@@ -105,6 +106,9 @@ class ScoreProcessor:
                                               compute_data['ranking_factors']['p2_diff_ranking_factor']))
         logger.debug("%-20s %16.3f %16.3f" % ("Base Points", compute_data['points'][1], compute_data['points'][2]))
         logger.debug("%-20s %16.3f %16.3f" % ("Points Earned", compute_data['earned'][1], compute_data['earned'][2]))
+        logger.debug("%-20s %16.3f %16.3f" % ("Current points",
+                                              player1.get_cumulative_points(p1_match_played, play_type),
+                                              player2.get_cumulative_points(p2_match_played, play_type)))
 
     def _set_ranking_factors(self, prior_match_index: int,
                              player1: PlayingEntity,
