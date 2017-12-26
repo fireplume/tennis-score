@@ -197,29 +197,46 @@ PARAMETER DETAILS:
 
 EXAMPLES
 
-    Print help message
+Print help message
+
     score.py -h
-    
-    Print help for 'input_csv' sub command:
+
+Print help for 'input_csv' sub command:
+
     score.py input_csv -h
 
-    Print help for 'demo_csv' sub command:
+Print help for 'demo_csv' sub command:
+
     score.py demo_csv -h
 
-    Output demo CSV content (to inspect format accepted by this tool for example).
-    Set a different seed to generate a different CSV file.
-    
+Output to screen demo CSV content (to inspect format accepted by this tool for example).
+Set a different seed to generate different results.
+
     score.py demo_csv --seed 0
+
+Same, but save to a file:
     score.py demo_csv --seed 0 > demo.csv
-    
-    Default stats output for singles
+
+Default stats output for singles
+
     score.py input_csv demo.csv
-    
-    Default stats output for doubles
+
+Same, but also print match scores
+
+    score.py input_csv --print-match-scores demo.csv
+
+Default stats output for doubles
+
     score.py input_csv --doubles demo.csv
-    
-    Print lots of debugging information, position of '-v' parameter is important!!!
+
+Print lots of debugging information; note that position of '-v' parameter is important!!!
+The '-v' parameter must come before the sub command ('input_csv' or 'demo_csv')
+
     score.py -v input_csv demo.csv
+
+Emulate current point system based on games won vs games lost without consideration for performance on player level.
+
+    score.py input_csv --ignore-ranking-factors --ranking-factor-break-in-period=0 demo.csv
 """
 
     arguments = parser.parse_args()
