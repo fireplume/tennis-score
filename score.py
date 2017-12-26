@@ -104,6 +104,12 @@ def parse_command_line():
                                  "score factor.",
                             default=False)
 
+    csv_parser.add_argument("--pms", "--print-match-scores",
+                            dest="print_match_scores",
+                            action="store_true",
+                            help="By default, only final stats are printed, use this option to also print match scores.",
+                            default=False)
+
     csv_dump_parser = subparsers.add_parser('demo_csv', help='Dump a demo CSV file.')
 
     csv_dump_parser.add_argument("--seed",
@@ -265,7 +271,8 @@ def compute_and_show_standings(main_args, tennis_league, play_type):
     s.compute(args.match_index, play_type)
 
     printer = StatsPrinter(tennis_league, main_args.player_filter)
-    printer.print_games(play_type, main_args.match_index)
+    if main_args.print_match_scores:
+        printer.print_games(play_type, main_args.match_index)
     printer.print_rankings(play_type, "%s stats" % play_type, main_args.match_index)
 
     if play_type == PlayingEntity.PlayType.DOUBLES:
