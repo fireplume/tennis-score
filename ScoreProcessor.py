@@ -259,9 +259,9 @@ class ScoreProcessor:
             # Are players in their breaking in mode?
             compute_data['ranking_breaking_in'] = dict()
             compute_data['ranking_breaking_in'][1] = \
-                compute_data['match_played'][1] <= self._ranking_factor_break_in_period
+                compute_data['match_played'][1] < self._ranking_factor_break_in_period
             compute_data['ranking_breaking_in'][2] = \
-                compute_data['match_played'][2] <= self._ranking_factor_break_in_period
+                compute_data['match_played'][2] < self._ranking_factor_break_in_period
 
             self._set_ranking_factors(prior_match_index,
                                       playing_entity_1,
