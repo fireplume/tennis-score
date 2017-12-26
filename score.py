@@ -119,7 +119,8 @@ This program makes a clear distinction between a match and a game, so pay attent
 
 ALGORITHM:
 
-- Ranking is based on points per match average and player level (level_scoring_factor)
+- Ranking is based on points per match average and player level (level_scoring_factor).
+- The level scoring factor is to be set in the imported file. If not set, defaults to 1.
 - Points earned for a given match depends on your average performance compared to that of the league at the time
 of the match and your level (level_scoring_factor, see a CSV file for details).
 
@@ -173,23 +174,20 @@ PARAMETER DETAILS:
     See equations for details on how it impacts ranking. Higher value favors higher ranked players.
 
 "--rdfc", "--ranking-diff-factor-constant":
-    See equations for details on how it impacts ranking. Higher value favors lower ranked players.
+    See equations for details on how it impacts ranking. Higher value favors underdog players during matches.
 
 "--rfbp", "--ranking-factor-break-in-period":
     The ranking mechanism might give biased results for the initial games. Setting this option requires x number
-    of matches by played by all involved players in a match before the ranking algorithm kicks in. In the meantime,
-    ranking factors are forced to 1, meaning earned points == games_won/total_games_played * points_per_match.
-    To reduce the scoring impact of those initial games, points earned are further divided by the league break in
-    score factor ("--lbsf", "--league-break-in-score-factor").
+    of matches be played by players in a match before the ranking algorithm kicks in. In the meantime, earned
+    points are reduced significantly, see equations for details.
 
 "--lbsf", "--league-break-in-score-factor":
     Factor applied to points earned during the break in period. Should be small =~ 0.1. This is to mitigate the impact
     of the initial games where rankings has not broken in yet.
 
 "-i", "--ignore-ranking-factors":
-    Whatever the options set, ranking factors are forced to 1, meaning
-    earned points == games_won/total_games_played * points_per_match.
-    That doesn't affect the ranking break in period. To disable the latter, use '--rfbp=0' 
+    Whatever the options set, ranking factors are forced to 1. It doesn't impact the ranking break in period though.
+    To disable the latter, use '--rfbp=0' 
 
 EXAMPLES
 
