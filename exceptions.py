@@ -23,3 +23,6 @@ class BackToTheFutureError(Exception):
     pass
 
 
+class UnforseenError(Exception):
+    """ I really didn't expected that one... """
+    pass

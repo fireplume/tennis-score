@@ -7,8 +7,13 @@ import shutil
 import webbrowser
 import glob
 
+
 def run_command(cmd, expected_success=True):
-    success = subprocess.call(cmd, shell=True) == 0
+    try:
+        success = subprocess.call(cmd, shell=True) == 0
+    except:
+        success = False
+
     if success != expected_success:
         print("%s failed" % cmd)
         sys.exit(1)
@@ -41,13 +46,13 @@ if __name__ == "__main__":
         run_command("coverage run -a score.py input_csv -h")
         run_command("coverage run -a score.py input_csv %s" % csv_file)
         run_command("coverage run -a score.py input_csv --list-players %s" % csv_file)
-        run_command("coverage run -a score.py -v input_csv -m -3 %s" % csv_file)
+        run_command("coverage run -a score.py -v input_csv -m -3 %s" % csv_file, expected_success=False)
         run_command("coverage run -a score.py -v input_csv -m 2000 %s" % csv_file)
-        run_command("coverage run -a score.py -v input_csv -m 7 %s" % csv_file)
+        run_command("coverage run -a score.py -v input_csv -m 1 %s" % csv_file)
         run_command("coverage run -a score.py -v input_csv -p math %s" % csv_file)
         run_command("coverage run -a score.py input_csv %s" % csv_file)
         run_command("coverage run -a score.py input_csv -i %s" % csv_file)
-        run_command("coverage run -a score.py -v input_csv --ppp=100 --rfc=1 --rdfc=1 --rfbp=3 --lbsf=0.01 %s" % csv_file)
+        run_command("coverage run -a score.py -v input_csv --ppm=100 --rfc=1 --rdfc=1 --rfbp=3 --lbsf=0.01 %s" % csv_file)
         run_command("coverage run -a score.py -v input_csv --doubles %s" % csv_file)
         run_command("coverage run -a score.py -v input_csv --doubles %s" % csv_file)
 

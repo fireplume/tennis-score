@@ -1,12 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-import logging
 import copy
 from utils import *
 from exceptions import InitError, OverwriteError, BackToTheFutureError
 
-logger = logging.getLogger("stats")
-logger.setLevel(logging.DEBUG)
+logger = LoggerHandler.get_instance().get_logger("Stats")
 
 
 class StatsIndex(metaclass=ABCMeta):

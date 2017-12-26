@@ -1,3 +1,6 @@
+import logging
+
+
 def parameter_type_checking(*args_check, **kwargs_check):
     """
     Decorator to be used to make sure CLASS function parameter types are as expected.
@@ -25,3 +28,33 @@ def parameter_type_checking(*args_check, **kwargs_check):
             return f(self, *args, **kwargs)
         return f_wrapper
     return decorator
+
+
+class LoggerHandler:
+    _DEFAULT_LEVEL = logging.INFO
+    _instance = None
+
+    def __init__(self):
+        if LoggerHandler._instance is not None:
+            raise Exception("LoggerHandler singleton already instantiated")
+        self._loggers = dict()
+
+    def get_logger(self, name):
+        self._loggers[name] = logging.getLogger(name)
+        self._loggers[name].setLevel(LoggerHandler._DEFAULT_LEVEL)
+        return self._loggers[name]
+
+    def reset_all_level(self, level):
+        for logger in self._loggers:
+            self._loggers[logger].setLevel(level)
+
+    @classmethod
+    def set_default_level(cls, level: int):
+        cls.DEFAULT_LEVEL = level
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = LoggerHandler()
+
+        return cls._instance

@@ -1,11 +1,10 @@
-import logging
 import sys
 
 from DoublesTeam import *
-from exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError
+from exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError, UnforseenError
+from utils import LoggerHandler
 
-logger = logging.getLogger("League")
-logger.setLevel(logging.DEBUG)
+logger = LoggerHandler.get_instance().get_logger("League")
 
 
 class League:
@@ -116,6 +115,8 @@ class League:
             raise PlayingEntityDoesNotExistError("Player %s not registered for %s" % (player, play_type))
 
         if league_match_index not in self._players_matches_played[play_type][player]:
+            if len(self._players_matches_played[play_type][player]) != 0:
+                raise UnforseenError("League match index should have been found.")
             return 0
 
         return self._players_matches_played[play_type][player][league_match_index]

@@ -1,21 +1,21 @@
 from League import *
 import logging
+from utils import LoggerHandler
 
-logger = logging.getLogger("ScoreProcessor")
-logger.setLevel(logging.DEBUG)
+logger = LoggerHandler.get_instance().get_logger("ScoreProcessor")
 
 
 class ScoreProcessor:
     def __init__(self,
                  league: League,
-                 points_per_game: int,
+                 points_per_match: int,
                  ranking_factor_constant: float,
                  ranking_diff_factor_constant: float,
                  league_break_in_score_factor: float,
                  ranking_factor_break_in_period: int,
                  ignore_ranking_factors: bool):
         self._league = league
-        self._points_per_game = points_per_game
+        self._points_per_match = points_per_match
         self._ranking_factor_constant = ranking_factor_constant
         self._ranking_diff_factor_constant = ranking_diff_factor_constant
         self._ranking_factor_break_in_period = ranking_factor_break_in_period
@@ -23,7 +23,6 @@ class ScoreProcessor:
         self._league_break_in_score_factor = league_break_in_score_factor
 
         self._player_filter = []
-        self._game_breaking_in_flag = False
 
     def set_player_filter(self, player_filter: list):
         """
@@ -77,15 +76,18 @@ class ScoreProcessor:
            player2.get_name() not in self._player_filter:
             return
 
-        p1_match_played = self._league.get_player_matches_played(league_match_index, play_type, player1.get_name())
-        p2_match_played = self._league.get_player_matches_played(league_match_index, play_type, player2.get_name())
+        p1_match_played = compute_data['match_played'][1]
+        p2_match_played = compute_data['match_played'][2]
 
         logger.debug("######################################################")
         logger.debug("Stats for game prior to current one")
         logger.debug("League match index: %d" % league_match_index)
         logger.debug("Player 1 match index: %d" % p1_match_played)
         logger.debug("Player 2 match index: %d" % p2_match_played)
-        logger.debug("Ranking breaking in (factors == 1 if True) %s" % self._game_breaking_in_flag)
+        logger.debug("Player 1 ranking break in period: %s" %
+                     compute_data['ranking_factors']['league_break_in_score_factor'][1] == 1.0)
+        logger.debug("Player 2 ranking break in period: %s" %
+                     compute_data['ranking_factors']['league_break_in_score_factor'][2] == 1.0)
         logger.debug("-------------------")
         logger.debug("%-20s %16s %16s" % ("Players", player1.get_name(), player2.get_name()))
         logger.debug("%-20s %16d %16d" % ("Match Played", p1_match_played, p2_match_played))
@@ -110,23 +112,27 @@ class ScoreProcessor:
                              compute_data: dict):
         play_type = compute_data['play_type']
 
-        # Until all players have played at least x games, rankings are not a factor in calculating points.
-        # If "ignore ranking factor" is set, same thing.
-        if self._ignore_ranking_factors or self._game_breaking_in_flag:
+        compute_data['ranking_factors']['league_break_in_score_factor'] = dict()
+        compute_data['ranking_factors']['league_break_in_score_factor'][1] = 1
+        compute_data['ranking_factors']['league_break_in_score_factor'][2] = 1
+
+        # If "ignore ranking factor", ranking factors are not a considered in calculating points.
+        if self._ignore_ranking_factors or prior_match_index == 0:
             compute_data['ranking_factors']['p1_ranking_factor'] = 1
             compute_data['ranking_factors']['p2_ranking_factor'] = 1
             compute_data['ranking_factors']['p1_diff_ranking_factor'] = 1
             compute_data['ranking_factors']['p2_diff_ranking_factor'] = 1
-            compute_data['ranking_factors']['league_break_in_score_factor'] = self._league_break_in_score_factor
+            if compute_data['ranking_breaking_in'][1]:
+                compute_data['ranking_factors']['league_break_in_score_factor'][1] = self._league_break_in_score_factor
+            if compute_data['ranking_breaking_in'][2]:
+                compute_data['ranking_factors']['league_break_in_score_factor'][2] = self._league_break_in_score_factor
         else:
             p1_average_ppm = player1.get_average_points_per_match(prior_match_index, play_type)
             p2_average_ppm = player2.get_average_points_per_match(prior_match_index, play_type)
-            league_average_ppm = self._league.get_league_average_points_per_match(prior_match_index, play_type)
 
+            league_average_ppm = self._league.get_league_average_points_per_match(prior_match_index, play_type)
             compute_data['ranking_factors']['avg_divider'] = league_average_ppm
 
-            # League leader is the one with the highest ranking factor and earns more points for same results as another
-            # player.
             compute_data['ranking_factors']['p1_ranking_factor'] = \
                 p1_average_ppm / compute_data['ranking_factors']['avg_divider'] * self._ranking_factor_constant
 
@@ -134,12 +140,27 @@ class ScoreProcessor:
                 p2_average_ppm / compute_data['ranking_factors']['avg_divider'] * self._ranking_factor_constant
 
             # The stronger you are compared to your opponent, the least point you earn per games won.
-            compute_data['ranking_factors']['p1_diff_ranking_factor'] = self._ranking_diff_factor_constant / \
-                (p1_average_ppm / p2_average_ppm)
-            compute_data['ranking_factors']['p2_diff_ranking_factor'] = self._ranking_diff_factor_constant / \
-                (p2_average_ppm / p1_average_ppm)
-            # Break in inactive, set to 1
-            compute_data['ranking_factors']['league_break_in_score_factor'] = 1
+            try:
+                compute_data['ranking_factors']['p1_diff_ranking_factor'] = self._ranking_diff_factor_constant / \
+                    (p1_average_ppm / p2_average_ppm)
+            except ZeroDivisionError:
+                compute_data['ranking_factors']['p1_diff_ranking_factor'] = 1
+
+            try:
+                compute_data['ranking_factors']['p2_diff_ranking_factor'] = self._ranking_diff_factor_constant / \
+                    (p2_average_ppm / p1_average_ppm)
+            except ZeroDivisionError:
+                compute_data['ranking_factors']['p2_diff_ranking_factor'] = 1
+
+            # override depending on breaking in flag
+            if compute_data['ranking_breaking_in'][1]:
+                compute_data['ranking_factors']['p1_ranking_factor'] = 1
+                compute_data['ranking_factors']['p1_diff_ranking_factor'] = 1
+                compute_data['ranking_factors']['league_break_in_score_factor'][1] = self._league_break_in_score_factor
+            if compute_data['ranking_breaking_in'][2]:
+                compute_data['ranking_factors']['p2_ranking_factor'] = 1
+                compute_data['ranking_factors']['p2_diff_ranking_factor'] = 1
+                compute_data['ranking_factors']['league_break_in_score_factor'][2] = self._league_break_in_score_factor
 
     def _set_points_data(self, compute_data, game, player1, player2):
         play_type = compute_data['play_type']
@@ -158,17 +179,17 @@ class ScoreProcessor:
             p1_points = 0
             p2_points = 0
         else:
-            p1_points = p1_won_games/total_games_played*self._points_per_game
-            p2_points = p2_won_games/total_games_played*self._points_per_game
+            p1_points = p1_won_games/total_games_played*self._points_per_match
+            p2_points = p2_won_games/total_games_played*self._points_per_match
 
         p1_earned_points = p1_points * compute_data['ranking_factors']['p1_ranking_factor'] * \
             compute_data['ranking_factors']['p1_diff_ranking_factor'] * \
-            compute_data['ranking_factors']['league_break_in_score_factor'] * \
+            compute_data['ranking_factors']['league_break_in_score_factor'][1] * \
             compute_data['level_score_factor'][1]
 
         p2_earned_points = p2_points * compute_data['ranking_factors']['p2_ranking_factor'] * \
             compute_data['ranking_factors']['p2_diff_ranking_factor'] * \
-            compute_data['ranking_factors']['league_break_in_score_factor'] * \
+            compute_data['ranking_factors']['league_break_in_score_factor'][2] * \
             compute_data['level_score_factor'][2]
 
         compute_data['won'] = dict()
@@ -227,8 +248,12 @@ class ScoreProcessor:
                                                                                          play_type,
                                                                                          game.get_name(i))
 
-            self._game_breaking_in_flag = compute_data['match_played'][1] < self._ranking_factor_break_in_period or \
-                compute_data['match_played'][2] < self._ranking_factor_break_in_period
+            # Are players in their breaking in mode?
+            compute_data['ranking_breaking_in'] = dict()
+            compute_data['ranking_breaking_in'][1] = \
+                compute_data['match_played'][1] <= self._ranking_factor_break_in_period
+            compute_data['ranking_breaking_in'][2] = \
+                compute_data['match_played'][2] <= self._ranking_factor_break_in_period
 
             self._set_ranking_factors(prior_match_index,
                                       playing_entity_1,
