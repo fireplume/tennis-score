@@ -1,6 +1,6 @@
 from League import *
+from utils.utils import LoggerHandler
 import logging
-from utils import LoggerHandler
 
 logger = LoggerHandler.get_instance().get_logger("ScoreProcessor")
 
@@ -32,24 +32,25 @@ class ScoreProcessor:
         """
         self._player_filter = player_filter
 
-    def _process_ranks(self,
-                       play_type: PlayingEntity.PlayType,
-                       league_match_index: int):
+    def _set_ranking(self,
+                     play_type: PlayingEntity.PlayType,
+                     league_match_index: LeagueIndex):
         """
         Ranking is based on points per match average
         """
         players_points = dict()
+        players_points[0] = []
 
         for entity in self._league.iter_playing_entities(play_type):
             player_matches_played = self._league.get_player_matches_played(league_match_index,
-                                                                           play_type,
                                                                            entity.get_name())
             # If player has not played any games, don't set rank
             if player_matches_played == 0:
+                players_points[0].append(entity)
                 continue
 
             # get total number of points up to match index
-            points_per_match = entity.get_cumulative_points(player_matches_played, play_type)/player_matches_played
+            points_per_match = entity.get_cumulative_points(PlayerIndex(player_matches_played))/player_matches_played
             if points_per_match not in players_points:
                 players_points[points_per_match] = []
 
@@ -59,14 +60,16 @@ class ScoreProcessor:
         for score in sorted(players_points.keys(), reverse=True):
             # Set the player ranking for current match index
             for entity in players_points[score]:
-                player_match_index = self._league.get_player_matches_played(league_match_index,
-                                                                            play_type,
-                                                                            entity.get_name())
-                entity.set_rank(player_match_index, rank, play_type)
+                # player_match_index = self._league.get_player_matches_played(league_match_index,
+                #                                                             entity.get_name())
+                try:
+                    entity.set_rank(league_match_index, rank)
+                except NoMatchPlayedYetError:
+                    pass
 
             rank += 1
 
-    def _print_debug(self, player1, player2, league_match_index, play_type, compute_data):
+    def _print_debug(self, player1, player2, league_match_index, compute_data):
 
         if not logger.isEnabledFor(logging.DEBUG):
             return
@@ -78,8 +81,8 @@ class ScoreProcessor:
 
         # Can't rely on compute_data information here as it doesn't contain player match index as of
         # the league match index.
-        p1_match_played = self._league.get_player_matches_played(league_match_index, play_type, player1.get_name())
-        p2_match_played = self._league.get_player_matches_played(league_match_index, play_type, player2.get_name())
+        p1_match_played = player1.get_nb_match_played(league_match_index)
+        p2_match_played = player2.get_nb_match_played(league_match_index)
         p1_ranking_break_in = compute_data['ranking_factors']['league_break_in_score_factor'][1] != 1.0
         p2_ranking_break_in = compute_data['ranking_factors']['league_break_in_score_factor'][2] != 1.0
 
@@ -91,10 +94,10 @@ class ScoreProcessor:
         logger.debug("-------------------")
         logger.debug("%-20s %16s %16s" % ("Players", player1.get_name(), player2.get_name()))
         logger.debug("%-20s %16d %16d" % ("Match Played", p1_match_played, p2_match_played))
-        logger.debug("%-20s %16.3f %16.3f" % ("Points before", player1.get_cumulative_points(p1_match_played-1, play_type),
-                                              player2.get_cumulative_points(p2_match_played-1, play_type)))
-        logger.debug("%-20s %16d %16d" % ("Ranking Before", player1.get_ranking(p1_match_played-1, play_type),
-                                          player2.get_ranking(p2_match_played-1, play_type)))
+        logger.debug("%-20s %16.3f %16.3f" % ("Points before", player1.get_cumulative_points(PlayerIndex(p1_match_played-1)),
+                                              player2.get_cumulative_points(PlayerIndex(p2_match_played-1))))
+        logger.debug("%-20s %16d %16d" % ("Current Ranking", player1.get_ranking(PlayerIndex(p1_match_played)),
+                                          player2.get_ranking(PlayerIndex(p2_match_played))))
         logger.debug("%-20s %16s %16s" % ("Ranking Break in", p1_ranking_break_in, p2_ranking_break_in))
         logger.debug("-------------------")
         logger.debug("Status for current match index")
@@ -107,10 +110,10 @@ class ScoreProcessor:
         logger.debug("%-20s %16.3f %16.3f" % ("Base Points", compute_data['points'][1], compute_data['points'][2]))
         logger.debug("%-20s %16.3f %16.3f" % ("Points Earned", compute_data['earned'][1], compute_data['earned'][2]))
         logger.debug("%-20s %16.3f %16.3f" % ("Current points",
-                                              player1.get_cumulative_points(p1_match_played, play_type),
-                                              player2.get_cumulative_points(p2_match_played, play_type)))
+                                              player1.get_cumulative_points(PlayerIndex(p1_match_played)),
+                                              player2.get_cumulative_points(PlayerIndex(p2_match_played))))
 
-    def _set_ranking_factors(self, prior_match_index: int,
+    def _set_ranking_factors(self, prior_match_index: LeagueIndex,
                              player1: PlayingEntity,
                              player2: PlayingEntity,
                              compute_data: dict):
@@ -131,8 +134,8 @@ class ScoreProcessor:
             if compute_data['ranking_breaking_in'][2]:
                 compute_data['ranking_factors']['league_break_in_score_factor'][2] = self._league_break_in_score_factor
         else:
-            p1_average_ppm = player1.get_average_points_per_match(prior_match_index, play_type)
-            p2_average_ppm = player2.get_average_points_per_match(prior_match_index, play_type)
+            p1_average_ppm = player1.get_average_points_per_match(prior_match_index)
+            p2_average_ppm = player2.get_average_points_per_match(prior_match_index)
 
             league_average_ppm = self._league.get_league_average_points_per_match(prior_match_index, play_type)
             compute_data['ranking_factors']['avg_divider'] = league_average_ppm
@@ -167,13 +170,12 @@ class ScoreProcessor:
                 compute_data['ranking_factors']['league_break_in_score_factor'][2] = self._league_break_in_score_factor
 
     def _set_points_data(self, compute_data, game, player1, player2):
-        play_type = compute_data['play_type']
-        match_index_1 = compute_data['match_played'][1]
-        match_index_2 = compute_data['match_played'][2]
+        match_index_1 = PlayerIndex(compute_data['prior_match_played'][1])
+        match_index_2 = PlayerIndex(compute_data['prior_match_played'][2])
 
         compute_data['level_score_factor'] = dict()
-        compute_data['level_score_factor'][1] = player1.get_play_level_scoring_factor(play_type, match_index_1)
-        compute_data['level_score_factor'][2] = player2.get_play_level_scoring_factor(play_type, match_index_2)
+        compute_data['level_score_factor'][1] = player1.get_play_level_scoring_factor(match_index_1)
+        compute_data['level_score_factor'][2] = player2.get_play_level_scoring_factor(match_index_2)
 
         p1_won_games = game.get_games_won(player1.get_name())
         p2_won_games = game.get_games_won(player2.get_name())
@@ -211,30 +213,30 @@ class ScoreProcessor:
         compute_data['earned'][1] = p1_earned_points
         compute_data['earned'][2] = p2_earned_points
 
-    def _set_individual_player_doubles_stats(self, compute_data: dict, teams: list, league_match_index: int):
+    def _set_individual_player_doubles_stats(self, compute_data: dict, teams: list, league_match_index: LeagueIndex):
         for team_index in range(0, 2):
             team_earned_points = compute_data['earned'][team_index+1]
             for player_index in range(1, 3):
                 player = teams[team_index].get_player(player_index)
                 player_doubles_played = self._league.get_player_matches_played(league_match_index,
-                                                                               PlayingEntity.PlayType.DOUBLES,
                                                                                player.get_name())
-                player.set_game_points(player_doubles_played, team_earned_points, PlayingEntity.PlayType.DOUBLES)
+                player.set_match_points(player_doubles_played, team_earned_points, PlayingEntity.PlayType.DOUBLES)
 
-    def compute(self, last_match_index: int, play_type: PlayingEntity.PlayType):
-        if last_match_index == -1:
-            last_match_index = self._league.last_match_index(play_type)
-        elif last_match_index > self._league.last_match_index(play_type):
-            last_match_index = self._league.last_match_index(play_type)
-
-        if last_match_index == 0:
+    def compute(self, last_match_index: LeagueIndex, play_type: PlayingEntity.PlayType):
+        # if no match played, just return
+        if self._league.last_match_index(play_type) == -1:
             return
 
+        if last_match_index == -1:
+            last_match_index = self._league.last_match_index(play_type)
+
         self._league.reset_points(play_type)
+        self._league.reset_rankings(play_type)
 
-        prior_match_index = 0
-        current_match_index = 1
+        prior_match_index = LeagueIndex(0)
+        current_match_index = LeagueIndex(1)
 
+        # Process points for each game
         for game in self._league.iter_games(play_type):
             if current_match_index > last_match_index:
                 break
@@ -243,47 +245,36 @@ class ScoreProcessor:
             compute_data['ranking_factors'] = dict()
             compute_data['play_type'] = play_type
 
-            # Each game modifies the rankings for players who have not played as many games as others,
-            # so reset the rankings
-            self._league.reset_rankings(play_type)
-
             playing_entity_1 = self._league.get_playing_entity(game.get_name(1))
             playing_entity_2 = self._league.get_playing_entity(game.get_name(2))
 
-            compute_data['match_played'] = dict()
+            compute_data['prior_match_played'] = dict()
             for i in range(1, 3):
-                compute_data['match_played'][i] = self._league.get_player_matches_played(prior_match_index,
-                                                                                         play_type,
-                                                                                         game.get_name(i))
+                compute_data['prior_match_played'][i] = self._league.get_player_matches_played(prior_match_index.get_locked_copy(),
+                                                                                               game.get_name(i))
 
             # Are players in their breaking in mode?
             compute_data['ranking_breaking_in'] = dict()
             compute_data['ranking_breaking_in'][1] = \
-                compute_data['match_played'][1] < self._ranking_factor_break_in_period
+                compute_data['prior_match_played'][1] < self._ranking_factor_break_in_period
             compute_data['ranking_breaking_in'][2] = \
-                compute_data['match_played'][2] < self._ranking_factor_break_in_period
+                compute_data['prior_match_played'][2] < self._ranking_factor_break_in_period
 
-            self._set_ranking_factors(prior_match_index,
+            self._set_ranking_factors(prior_match_index.get_locked_copy(),
                                       playing_entity_1,
                                       playing_entity_2,
                                       compute_data)
 
             self._set_points_data(compute_data, game, playing_entity_1, playing_entity_2)
 
-            playing_entity_1.set_game_points(compute_data['match_played'][1]+1, compute_data['earned'][1], play_type)
-            playing_entity_2.set_game_points(compute_data['match_played'][2]+1, compute_data['earned'][2], play_type)
+            playing_entity_1.set_match_points(current_match_index.get_locked_copy(), compute_data['earned'][1])
+            playing_entity_2.set_match_points(current_match_index.get_locked_copy(), compute_data['earned'][2])
 
-            if play_type == PlayingEntity.PlayType.DOUBLES:
-                self._set_individual_player_doubles_stats(compute_data,
-                                                          [playing_entity_1, playing_entity_2],
-                                                          current_match_index)
+            self._set_ranking(play_type, current_match_index)
 
-            self._league.fill_in_the_blanks(current_match_index, play_type)
-            self._process_ranks(play_type, current_match_index)
+            self._print_debug(playing_entity_1, playing_entity_2, current_match_index.get_locked_copy(), compute_data)
 
-            self._print_debug(playing_entity_1, playing_entity_2, current_match_index, play_type, compute_data)
-
-            prior_match_index = current_match_index
+            prior_match_index += 1
             current_match_index += 1
 
 
@@ -297,41 +288,41 @@ class DoublesScorePerPlayerProcessor(ScoreProcessor):
         super(DoublesScorePerPlayerProcessor, self).__init__(*_args, **_kwargs)
 
     def _process_doubles_ranks_for_singles(self,
-                                           league_match_index: int):
+                                           league_match_index: LeagueIndex):
         """
         Ranking is based on points per match average
         """
         players_points = dict()
 
-        for entity in self._league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
-            player_matches_played = self._league.get_player_matches_played(league_match_index,
-                                                                           PlayingEntity.PlayType.DOUBLES,
-                                                                           entity.get_name())
-            # If player has not played any games, don't set rank
-            if player_matches_played == 0:
-                continue
+        raise NotImplementedError("Current implementation broken")
 
-            # get total number of points up to match index
-            points_per_match = entity.get_cumulative_points(player_matches_played,
-                                                            PlayingEntity.PlayType.DOUBLES) / player_matches_played
-            if points_per_match not in players_points:
-                players_points[points_per_match] = []
+        # for entity in self._league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
+        #     player_matches_played = self._league.get_player_matches_played(league_match_index,
+        #                                                                    entity.get_name())
+        #     # If player has not played any games, don't set rank
+        #     if player_matches_played == 0:
+        #         continue
+        #
+        #     # get total number of points up to match index
+        #     points_per_match = entity.get_cumulative_points(player_matches_played,
+        #                                                     PlayingEntity.PlayType.DOUBLES) / player_matches_played
+        #     if points_per_match not in players_points:
+        #         players_points[points_per_match] = []
+        #
+        #     players_points[points_per_match].append(entity)
+        #
+        # rank = 1
+        # for score in sorted(players_points.keys(), reverse=True):
+        #     # Set the player ranking for current match index
+        #     for entity in players_points[score]:
+        #         player_match_index = self._league.get_player_matches_played(league_match_index,
+        #                                                                     entity.get_name())
+        #         entity.set_rank(player_match_index, rank, PlayingEntity.PlayType.DOUBLES)
+        #
+        #     rank += 1
 
-            players_points[points_per_match].append(entity)
-
-        rank = 1
-        for score in sorted(players_points.keys(), reverse=True):
-            # Set the player ranking for current match index
-            for entity in players_points[score]:
-                player_match_index = self._league.get_player_matches_played(league_match_index,
-                                                                            PlayingEntity.PlayType.DOUBLES,
-                                                                            entity.get_name())
-                entity.set_rank(player_match_index, rank, PlayingEntity.PlayType.DOUBLES)
-
-            rank += 1
-
-    def compute(self, last_match_index: int, play_type: PlayingEntity.PlayType):
+    def compute(self, last_match_index: LeagueIndex, play_type: PlayingEntity.PlayType):
         # Compute the points for the doubles playing entities, it already takes into account
         # each player's level scoring factor.
         super(DoublesScorePerPlayerProcessor, self).compute(last_match_index, play_type)
-        self._process_doubles_ranks_for_singles(last_match_index)
+        # self._process_doubles_ranks_for_singles(last_match_index)

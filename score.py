@@ -1,10 +1,13 @@
 #!/usr/bin/env python3.6
 import argparse
+import logging
+import sys
+
 from ScoreProcessor import *
 from StatsPrinter import *
 from Player import *
 import importer.csv
-from utils import LoggerHandler
+from utils.utils import LoggerHandler, Accepts
 
 logging.basicConfig(level=logging.INFO)
 LoggerHandler.set_default_level(level=logging.INFO)
@@ -17,15 +20,15 @@ RANKING_FACTOR_BREAK_IN_PERIOD = 3
 LEAGUE_BREAK_IN_SCORE_FACTOR = 0.1
 
 
-def parse_command_line():
+def parse_command_line(command_line_args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Tennis scoring program proof of concept',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-v", "--verbose",
-                            dest="verbose",
-                            action="store_true",
-                            help="Print debug chatter.",
-                            default=False)
+                        dest="verbose",
+                        action="store_true",
+                        help="Print debug chatter.",
+                        default=False)
 
     subparsers = parser.add_subparsers(help='Use one of the following sub commands to perform the desired task.',
                                        dest='cmd')
@@ -239,14 +242,20 @@ Emulate current point system based on games won vs games lost without considerat
     score.py input_csv --ignore-ranking-factors --ranking-factor-break-in-period=0 demo.csv
 """
 
-    arguments = parser.parse_args()
+    arguments = parser.parse_args(command_line_args)
 
     error = False
+
+    if arguments.cmd is None:
+        parser.print_help()
+        sys.exit(0)
 
     if arguments.verbose:
         LoggerHandler.get_instance().reset_all_level(logging.DEBUG)
         LoggerHandler.set_default_level(logging.DEBUG)
-        # logging.basicConfig(level=logging.DEBUG)
+
+        # When verbose is set, enable type checking decorator.
+        Accepts.enable()
 
     if arguments.cmd == "input_csv":
         if arguments.league_break_in_score_factor > 0.5:
@@ -264,12 +273,13 @@ Emulate current point system based on games won vs games lost without considerat
 
 
 def list_players_in_csv_format(tennis_league):
-    print("Name,Level_Scoring_Factor,Initial_Ranking,Initial_Points")
+    print()
+    print("New player level, Name, league match index to take effect, new level(scoring factor)")
     for player in tennis_league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
-        for league_match_index, score_factor in player.iter_play_level_scoring_factor():
-            print("%s,%2.3f,%d,%2.3f" % (player.get_name(), score_factor,
-                                         player.get_ranking(0, PlayingEntity.PlayType.SINGLES), league_match_index))
-            break
+        score_factor = player.get_play_level_scoring_factor(LeagueIndex(0))
+        print(importer.csv.SINGLES_NEW_LEVEL_ENTRY_FORMAT.format(name=player.get_name(),
+                                                                 new_level=score_factor,
+                                                                 league_match_index=1))
 
 
 def compute_and_show_standings(main_args, tennis_league, play_type):
@@ -285,16 +295,17 @@ def compute_and_show_standings(main_args, tennis_league, play_type):
                        ranking_factor_break_in_period=main_args.ranking_factor_break_in_period,
                        ignore_ranking_factors=main_args.ignore_ranking_factors)
     s.set_player_filter(main_args.player_filter)
-    s.compute(args.match_index, play_type)
+    s.compute(LeagueIndex(main_args.match_index), play_type)
 
     printer = StatsPrinter(tennis_league, main_args.player_filter)
     if main_args.print_match_scores:
-        printer.print_games(play_type, main_args.match_index)
-    printer.print_rankings(play_type, "%s stats" % play_type, main_args.match_index)
+        printer.print_games(play_type, LeagueIndex(main_args.match_index))
+    printer.print_rankings(play_type, "%s stats" % play_type, LeagueIndex(main_args.match_index))
 
     if play_type == PlayingEntity.PlayType.DOUBLES:
-        printer = LeagueDoublesStatsPerPlayerPrinter(tennis_league, main_args.player_filter)
-        printer.print_rankings(play_type, "DOUBLES stats for each singles player", main_args.match_index)
+        logger.warning("Doubles stats for individual player not implemented")
+        # printer = LeagueDoublesStatsPerPlayerPrinter(tennis_league, main_args.player_filter)
+        # printer.print_rankings(play_type, "DOUBLES stats for each singles player", LeagueIndex(args.match_index))
 
 
 def main(main_args):
@@ -313,17 +324,18 @@ def main(main_args):
         else:
             compute_and_show_standings(main_args, tennis_league, play_type)
 
+        # For testing:
+        return tennis_league
+
 
 if __name__ == "__main__":
-    import sys
-
-    args = parse_command_line()
+    _args = parse_command_line()
     try:
-        main(args)
+        main(_args)
     except Exception as global_e:
         logger.error(str(global_e))
 
-        if args.verbose:
+        if _args.verbose:
             import traceback
 
             traceback.print_exc()

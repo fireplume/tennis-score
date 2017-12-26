@@ -1,6 +1,6 @@
 from League import *
 from interfaces import *
-from exceptions import PlayingEntityDoesNotExistError
+from utils.exceptions import PlayingEntityDoesNotExistError
 
 
 class Game(BaseGame):

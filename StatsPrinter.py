@@ -9,14 +9,13 @@ class StatsPrinter:
         self._player_filter = player_filter
 
     def _get_largest_score_width(self,
-                                 play_type: PlayingEntity.PlayType,
-                                 match_index: int,
+                                 index: LeagueIndex,
                                  rankings: dict):
         largest_score_width = 0
         for r in sorted(rankings.keys()):
             for entity in rankings[r]:
-                match_played = self._league.get_player_matches_played(match_index, play_type, entity.get_name())
-                points = entity.get_cumulative_points(match_played, play_type)
+                match_played = PlayerIndex(self._league.get_player_matches_played(index, entity.get_name()))
+                points = entity.get_cumulative_points(index=match_played)
                 l = len("{:.3f}".format(points))
                 if l > largest_score_width:
                     largest_score_width = l
@@ -24,11 +23,13 @@ class StatsPrinter:
 
     def _process_rankings(self,
                           play_type: PlayingEntity.PlayType,
-                          match_index: int,
+                          index: LeagueIndex,
                           rankings: dict):
         for playing_entity in self._league.iter_playing_entities(play_type):
-            player_index = self._league.get_player_matches_played(match_index, play_type, playing_entity.get_name())
-            r = playing_entity.get_ranking(player_index, play_type)
+            try:
+                r = playing_entity.get_ranking(index)
+            except NoMatchPlayedYetError:
+                r = 0
 
             if r not in rankings:
                 rankings[r] = []
@@ -37,7 +38,7 @@ class StatsPrinter:
 
     def _format_setup(self,
                       play_type: PlayingEntity.PlayType,
-                      match_index: int,
+                      index: LeagueIndex,
                       rankings: dict):
         header_name_index = 1
         header_points_index = 4
@@ -51,7 +52,7 @@ class StatsPrinter:
                    "Games Lost", "% games won"]
         headers_length = [len(i) for i in headers]
         headers_length[header_name_index] = longest_name_length
-        headers_length[header_points_index] = self._get_largest_score_width(play_type, match_index, rankings)
+        headers_length[header_points_index] = self._get_largest_score_width(index, rankings)
         headers_length = [i+2 for i in headers_length]
 
         header_format_str = "{{:<{:d}s}} {{:<{:d}s}} {{:>{:d}s}} {{:>{:d}s}} {{:>{:d}s}}   {{:<{:d}s}} " + \
@@ -82,6 +83,7 @@ class StatsPrinter:
                 return True
             return False
         else:
+            # for doubles team
             for i in range(1, 3):
                 player = entity.get_player(i)
                 if _in_list(player):
@@ -91,19 +93,14 @@ class StatsPrinter:
     def print_rankings(self,
                        play_type: PlayingEntity.PlayType,
                        title: str,
-                       match_index=-1):
+                       index=LeagueIndex(-1)):
         """
         Print ranking for given match index.
         Prints latest ranking if not parameter is specified.
         """
-        if match_index == -1:
-            match_index = self._league.last_match_index(play_type)
-        if match_index > self._league.last_match_index(play_type):
-            match_index = self._league.last_match_index(play_type)
-
         rankings = dict()
-        self._process_rankings(play_type, match_index, rankings)
-        header, ranking_format = self._format_setup(play_type, match_index, rankings)
+        self._process_rankings(play_type, index, rankings)
+        header, ranking_format = self._format_setup(play_type, index, rankings)
 
         print('-'*len(header))
         print(title)
@@ -114,33 +111,31 @@ class StatsPrinter:
                 if not self._in_filter(entity):
                     continue
 
-                match_played = self._league.get_player_matches_played(match_index, play_type, entity.get_name())
-                if match_index != 0 and match_played == 0:
+                match_played = PlayerIndex(self._league.get_player_matches_played(index, entity.get_name()))
+                if index != 0 and match_played == 0:
                     continue
-                games_won = entity.get_cumulative_games_won(match_played, play_type)
-                games_lost = entity.get_cumulative_games_lost(match_played, play_type)
+                games_won = entity.get_cumulative_games_won(match_played)
+                games_lost = entity.get_cumulative_games_lost(match_played)
                 try:
                     games_won_percent = float(games_won) / (games_won + games_lost) * 100
                 except ZeroDivisionError:
                     games_won_percent = 0
-                points = entity.get_cumulative_points(match_played, play_type)
-                try:
-                    ppm = points/match_played
-                except ZeroDivisionError:
-                    ppm = 0
+                points = entity.get_cumulative_points(match_played)
+
+                ppm = points/int(match_played)
 
                 print(ranking_format.format(rank=rank,
                                             name=entity.get_name(),
-                                            play_level=entity.get_play_level_scoring_factor(play_type, match_played),
+                                            play_level=entity.get_play_level_scoring_factor(match_played),
                                             ppm=ppm,
                                             points=points,
-                                            match_played=match_played,
+                                            match_played=int(match_played),
                                             games_won=games_won,
                                             games_lost=games_lost,
                                             games_won_percent=games_won_percent))
 
         data = dict()
-        ppm = self._league.get_league_average_points_per_match(match_index, play_type, data)
+        ppm = self._league.get_league_average_points_per_match(index, play_type, data)
         try:
             games_won_percent = data['games_won']/data['total_games']*100
         except ZeroDivisionError:
@@ -164,10 +159,6 @@ class StatsPrinter:
         print("MATCH PLAYED")
         print("----------------------------------------------------------------------")
         index = 0
-        if match_index == -1:
-            match_index = self._league.last_match_index(play_type)
-        if match_index > self._league.last_match_index(play_type):
-            match_index = self._league.last_match_index(play_type)
 
         for game in self._league.iter_games(play_type):
             in_filter = False
@@ -183,7 +174,7 @@ class StatsPrinter:
 
             print(game)
 
-            if index >= match_index:
+            if match_index != -1 and index >= match_index:
                 break
         print()
 
@@ -194,16 +185,15 @@ class LeagueDoublesStatsPerPlayerPrinter(StatsPrinter):
 
     def _process_rankings(self,
                           play_type: PlayingEntity.PlayType,
-                          match_index: int,
+                          match_index: LeagueIndex,
                           rankings: dict):
-
-        for playing_entity in self._league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
-            player_index = self._league.get_player_matches_played(match_index,
-                                                                  PlayingEntity.PlayType.DOUBLES,
-                                                                  playing_entity.get_name())
-            r = playing_entity.get_ranking(player_index, PlayingEntity.PlayType.DOUBLES)
-
-            if r not in rankings:
-                rankings[r] = []
-
-            rankings[r].append(playing_entity)
+        raise NotImplementedError()
+        # for playing_entity in self._league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
+        #     player_index = self._league.get_player_matches_played(match_index,
+        #                                                           playing_entity.get_name())
+        #     r = playing_entity.get_ranking(player_index, PlayingEntity.PlayType.DOUBLES)
+        #
+        #     if r not in rankings:
+        #         rankings[r] = []
+        #
+        #     rankings[r].append(playing_entity)

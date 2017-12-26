@@ -26,3 +26,29 @@ class BackToTheFutureError(Exception):
 class UnforseenError(Exception):
     """ I really didn't expected that one... """
     pass
+
+
+class SmartIndexError(Exception):
+    pass
+
+
+class AcceptsSignatureError(Exception):
+    """
+    Exception for type checking decorator
+    """
+    pass
+
+
+class NoMatchPlayedYetError(Exception):
+    pass
+
+
+class ReadOnlyDataError(Exception):
+    pass
+
+
+class MissingIndexError(Exception):
+    """
+    Some functions must be called with keyword parameter 'index'
+    """
+    pass

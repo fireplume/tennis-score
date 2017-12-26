@@ -1,8 +1,8 @@
 import sys
 
 from DoublesTeam import *
-from exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError, UnforseenError
-from utils import LoggerHandler
+from utils.exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError, UnforseenError
+from utils.utils import LoggerHandler
 
 logger = LoggerHandler.get_instance().get_logger("League")
 
@@ -20,8 +20,8 @@ class League:
             sys.exit(1)
 
         self._playing_entity = dict()
-        self._playing_entity[PlayingEntity.PlayType.SINGLES] = dict()
-        self._playing_entity[PlayingEntity.PlayType.DOUBLES] = dict()
+        self._playing_entity[PlayingEntity.PlayType.SINGLES] = set()
+        self._playing_entity[PlayingEntity.PlayType.DOUBLES] = set()
 
         self._games = dict()
         self._games[PlayingEntity.PlayType.SINGLES] = dict()
@@ -29,19 +29,45 @@ class League:
 
         self._name_to_entity = dict()
 
-        self._match_index = dict()
-        self._match_index[PlayingEntity.PlayType.SINGLES] = 0
-        self._match_index[PlayingEntity.PlayType.DOUBLES] = 0
-
-        self._players_matches_played = dict()
-        self._players_matches_played[PlayingEntity.PlayType.SINGLES] = dict()
-        self._players_matches_played[PlayingEntity.PlayType.DOUBLES] = dict()
+        self._league_match_index = dict()
+        self._league_match_index[PlayingEntity.PlayType.SINGLES] = LeagueIndex(0)
+        self._league_match_index[PlayingEntity.PlayType.DOUBLES] = LeagueIndex(0)
 
         League._SINGLETON = self
 
+    # Populating league and games
+
+    def add_playing_entity(self, playing_entity: PlayingEntity):
+        if playing_entity.get_name() in self._name_to_entity:
+            raise PlayingEntityAlreadyExistsError("Player already exist")
+
+        self._playing_entity[playing_entity.play_type].add(playing_entity)
+        self._name_to_entity[playing_entity.get_name()] = playing_entity
+
+    def add_game(self, game: BaseGame):
+        p1_entity = self._name_to_entity[game.get_name(1)]
+        p2_entity = self._name_to_entity[game.get_name(2)]
+
+        if p1_entity.play_type != p2_entity.play_type:
+            print("ERROR: Trying to add game between %s and %s" % (game.get_name(1), game.get_name(2)))
+            raise Exception("You can't mix singles and doubles in a Game object!")
+
+        play_type = p1_entity.play_type
+        self._league_match_index[play_type] += 1
+
+        if self._league_match_index[play_type] in self._games[play_type].keys():
+            raise Exception("Internal error: game overwrite attempt at match index %d" % self._league_match_index[play_type])
+        self._games[play_type][self._league_match_index[play_type].get_locked_copy()] = game
+
+        # Add game to player objects for stats update
+        p1_entity.add_game(game, self._league_match_index[play_type])
+        p2_entity.add_game(game, self._league_match_index[play_type])
+
+    # Information
+
     def last_match_index(self, play_type: PlayingEntity.PlayType):
         if len(self._games[play_type].keys()) == 0:
-            return 0
+            return LeagueIndex(-1)
         return max(self._games[play_type].keys())
 
     def playing_entity_name_exists(self, playing_entity_name: str):
@@ -49,123 +75,51 @@ class League:
             return True
         return False
 
-    def add_playing_entity(self, playing_entity: PlayingEntity):
-        if playing_entity.get_name() in self._name_to_entity:
-            raise PlayingEntityAlreadyExistsError("Player already exist")
-
-        self._playing_entity[playing_entity.get_type()][playing_entity.get_name()] = playing_entity
-        self._name_to_entity[playing_entity.get_name()] = playing_entity
-
-        self._players_matches_played[playing_entity.get_type()][playing_entity.get_name()] = dict()
-        self._players_matches_played[playing_entity.get_type()][playing_entity.get_name()][0] = 0
-
-        # If playing entity is SINGLES, also add place holder for doubles information
-        if playing_entity.get_type() == PlayingEntity.PlayType.SINGLES:
-            self._players_matches_played[PlayingEntity.PlayType.DOUBLES][playing_entity.get_name()] = dict()
-            self._players_matches_played[PlayingEntity.PlayType.DOUBLES][playing_entity.get_name()][0] = 0
-
-    def add_game(self, game: BaseGame):
-        p1_entity = self._name_to_entity[game.get_name(1)]
-        p2_entity = self._name_to_entity[game.get_name(2)]
-
-        if p1_entity.get_type() != p2_entity.get_type():
-            print("ERROR: Trying to add game between %s and %s" % (game.get_name(1), game.get_name(2)))
-            raise Exception("You can't mix singles and doubles in a Game object!")
-
-        play_type = p1_entity.get_type()
-        self._match_index[play_type] += 1
-
-        if self._match_index[play_type] in self._games[play_type].keys():
-            raise Exception("Internal error: game overwrite attempt at match index %d" % self._match_index[play_type])
-        self._games[play_type][self._match_index[play_type]] = game
-
-        # Add game to player objects too
-        self._playing_entity[play_type][game.get_name(1)].add_game(game, play_type)
-        self._playing_entity[play_type][game.get_name(2)].add_game(game, play_type)
-
-        # If it's a doubles game, also add the game to each singles player
-        if play_type == PlayingEntity.PlayType.DOUBLES:
-            for doubles_entity in [p1_entity, p2_entity]:
-                doubles_entity.get_player(1).add_game(game, PlayingEntity.PlayType.DOUBLES)
-                doubles_entity.get_player(2).add_game(game, PlayingEntity.PlayType.DOUBLES)
-            # Set how many doubles games each singles player have played as of this league match index
-            for entity in self.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
-                self._players_matches_played[play_type][entity.get_name()][self._match_index[play_type]] = \
-                    entity.get_nb_match_played(play_type)
-
-        # How many games have each playing entity played as of this league's match index
-        for entity in self.iter_playing_entities(play_type):
-            self._players_matches_played[play_type][entity.get_name()][self._match_index[play_type]] = \
-                entity.get_nb_match_played(play_type)
-
-    def get_player_matches_played(self, league_match_index: int,
-                                  play_type: PlayingEntity.PlayType,
-                                  player: str):
+    def get_player_matches_played(self, league_match_index: LeagueIndex,
+                                  entity_name: str):
         """
         Returns the number of matches a player has played at the time the league has hit 'league_match_index'
-        :param league_match_index: league match index for which player's number of played matches is requested
-        :param play_type: singles or doubles
-        :param player: name
-        :return:
         """
-        if league_match_index == -1:
-            league_match_index = self._match_index[play_type]
-
-        if player not in self._players_matches_played[play_type]:
-            raise PlayingEntityDoesNotExistError("Player %s not registered for %s" % (player, play_type))
-
-        if league_match_index not in self._players_matches_played[play_type][player]:
-            if len(self._players_matches_played[play_type][player]) != 0:
-                raise UnforseenError("League match index should have been found.")
-            return 0
-
-        return self._players_matches_played[play_type][player][league_match_index]
-
-    def fill_in_the_blanks(self, match_index, play_type):
-        for playing_entity_name in self._playing_entity[play_type]:
-            entity = self._name_to_entity[playing_entity_name]
-            player_match_index = self.get_player_matches_played(match_index, play_type, entity.get_name())
-            entity.fill_in_the_blanks(player_match_index, play_type)
+        return self._name_to_entity[entity_name].get_nb_match_played(league_match_index)
 
     def get_playing_entity(self, name):
         if name not in self._name_to_entity:
             raise PlayingEntityDoesNotExistError("Playing entity %s does not exist!" % name)
-        entity = self._name_to_entity[name]
-        return self._playing_entity[entity.get_type()][name]
+        return self._name_to_entity[name]
 
-    def iter_games(self, play_type: PlayingEntity.PlayType):
+    def get_league_average_points_per_match(self,
+                                            index: LeagueIndex,
+                                            play_type: PlayingEntity.PlayType,
+                                            data=None):
         """
-        Cycles over the games from oldest to newest for given play type
+        This function returns the weighted league average of the player's average points per match.
         """
-        for match_index in sorted(self._games[play_type].keys()):
-            yield self._games[play_type][match_index]
-
-    def iter_playing_entities(self, play_type: PlayingEntity.PlayType):
-        for name in self._playing_entity[play_type].keys():
-            yield self._playing_entity[play_type][name]
-
-    def get_league_average_points_per_match(self, match_index: int, play_type: PlayingEntity.PlayType, data=None):
         league_points = 0
         league_match_played = 0
         games_won = 0
         games_lost = 0
+        league_ppm_total = 0
 
         for player in self.iter_playing_entities(play_type):
-            player_matches_played = self.get_player_matches_played(match_index, play_type, player.get_name())
-            player_points = player.get_cumulative_points(player_matches_played, play_type)
+            player_ppm = player.get_average_points_per_match(index)
+            player_matches_played = self.get_player_matches_played(index, player.get_name())
             if player_matches_played == 0:
                 continue
-            league_points += player_points
-            league_match_played += player_matches_played
-            games_won += player.get_cumulative_games_won(player_matches_played, play_type)
-            games_lost += player.get_cumulative_games_lost(player_matches_played, play_type)
 
-        # Matches are counted twice for the league, once for each playing entity, so divide by 2
-        league_match_played = int(league_match_played/2)
+            player_points = player.get_cumulative_points(index)
+            league_points += player_points
+
+            league_match_played += player_matches_played
+
+            games_won += player.get_cumulative_games_won(index)
+            games_lost += player.get_cumulative_games_lost(index)
+
+            league_ppm_total += player_ppm * player_matches_played
 
         if data is not None:
             data['league_points'] = league_points
-            data['league_matches'] = int(league_match_played)
+            # league matches are counted twice, once for each player, so divide by two here
+            data['league_matches'] = int(league_match_played/2)
             data['games_won'] = games_won
             data['games_lost'] = games_lost
             data['total_games'] = games_won + games_lost
@@ -175,10 +129,24 @@ class League:
                 data['games_percent'] = 0
 
         try:
-            avg = league_points/league_match_played
+            # for the purpose of league average player average points per match, we take the full league match count
+            avg = league_ppm_total/league_match_played
         except ZeroDivisionError:
             avg = 0
+
         return avg
+
+    # Resets
+
+    def reset_rankings(self, play_type: PlayingEntity.PlayType):
+        for entity in self._playing_entity[play_type]:
+            entity.reset_rankings()
+
+    def reset_points(self, play_type: PlayingEntity.PlayType):
+        for entity in self._playing_entity[play_type]:
+            entity.reset_points()
+
+    # Doubles services
 
     def generate_doubles_team_combination(self):
         logger.debug("############################################")
@@ -194,28 +162,33 @@ class League:
 
         for i in range(0, len(singles_players) - 1):
             for j in range(i + 1, len(singles_players)):
-                play_level_scoring_factor = singles_players[i].get_play_level_scoring_factor(singles_type, 0) * \
-                                            singles_players[j].get_play_level_scoring_factor(singles_type, 0)
+                play_level_scoring_factor = singles_players[i].get_play_level_scoring_factor(index=LeagueIndex(0)) * \
+                                            singles_players[j].get_play_level_scoring_factor(index=LeagueIndex(0))
 
-                team = DoublesTeam(singles_players[i], singles_players[j],
-                                   play_level_scoring_factor, 1, 0)
+                team = DoublesTeam(singles_players[i],
+                                   singles_players[j],
+                                   initial_points=0.0,
+                                   initial_level=play_level_scoring_factor)
+
                 if team.get_name() not in self._playing_entity[PlayingEntity.PlayType.DOUBLES]:
                     self.add_playing_entity(team)
-                # logger.debug("  Doubles team created: %s" % team.get_name())
 
     def get_doubles_team(self, player_name_1, player_name_2):
-        for team_name in self._playing_entity[PlayingEntity.PlayType.DOUBLES]:
-            team = self._playing_entity[PlayingEntity.PlayType.DOUBLES][team_name]
-            if team.is_in_team(player_name_1) and team.is_in_team(player_name_2):
-                return team
-        raise Exception("Team composed of %s and %s does not exist!" % (player_name_1, player_name_2))
+        team_name = DoublesTeam.get_doubles_team_name_from_player_names(player_name_1, player_name_2)
+        if team_name in self._name_to_entity:
+            return self._name_to_entity[team_name]
+        raise PlayingEntityDoesNotExistError("Team composed of %s and %s does not exist!" % (player_name_1, player_name_2))
 
-    def reset_rankings(self, play_type: PlayingEntity.PlayType):
-        for entity in self._name_to_entity.values():
-            if entity.get_type() == play_type:
-                entity.reset_rankings(play_type)
+    # Iterators
 
-    def reset_points(self, play_type: PlayingEntity.PlayType):
-        for entity in self._name_to_entity.values():
-            if entity.get_type() == play_type:
-                entity.reset_points(play_type)
+    def iter_games(self, play_type: PlayingEntity.PlayType):
+        """
+        Cycles over the games from oldest to newest for given play type
+        """
+        for match_index in sorted(self._games[play_type].keys()):
+            yield self._games[play_type][match_index]
+
+    def iter_playing_entities(self, play_type: PlayingEntity.PlayType):
+        for entity in self._playing_entity[play_type]:
+            yield entity
+
