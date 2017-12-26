@@ -186,15 +186,19 @@ class ScoreProcessor:
             p1_points = p1_won_games/total_games_played*self._points_per_match
             p2_points = p2_won_games/total_games_played*self._points_per_match
 
-        p1_earned_points = p1_points * compute_data['ranking_factors']['p1_ranking_factor'] * \
-            compute_data['ranking_factors']['p1_diff_ranking_factor'] * \
-            compute_data['ranking_factors']['league_break_in_score_factor'][1] * \
-            compute_data['level_score_factor'][1]
+        ranking_factor = compute_data['ranking_factors']['p1_ranking_factor']
+        diff_factor = compute_data['ranking_factors']['p1_diff_ranking_factor']
+        break_in_factor = compute_data['ranking_factors']['league_break_in_score_factor'][1]
+        lvl_factor = compute_data['level_score_factor'][1]
 
-        p2_earned_points = p2_points * compute_data['ranking_factors']['p2_ranking_factor'] * \
-            compute_data['ranking_factors']['p2_diff_ranking_factor'] * \
-            compute_data['ranking_factors']['league_break_in_score_factor'][2] * \
-            compute_data['level_score_factor'][2]
+        p1_earned_points = p1_points * ranking_factor * diff_factor * break_in_factor * lvl_factor
+
+        ranking_factor = compute_data['ranking_factors']['p2_ranking_factor']
+        diff_factor = compute_data['ranking_factors']['p2_diff_ranking_factor']
+        break_in_factor = compute_data['ranking_factors']['league_break_in_score_factor'][2]
+        lvl_factor = compute_data['level_score_factor'][2]
+
+        p2_earned_points = p2_points * ranking_factor * diff_factor * break_in_factor * lvl_factor
 
         compute_data['won'] = dict()
         compute_data['won'][1] = p1_won_games
