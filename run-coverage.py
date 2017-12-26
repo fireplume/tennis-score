@@ -48,7 +48,7 @@ if __name__ == "__main__":
         run_command("coverage run -a score.py input_csv --list-players %s" % csv_file)
         run_command("coverage run -a score.py -v input_csv -m -3 %s" % csv_file, expected_success=False)
         run_command("coverage run -a score.py -v input_csv -m 2000 %s" % csv_file)
-        run_command("coverage run -a score.py -v input_csv -m 1 %s" % csv_file)
+        run_command("coverage run -a score.py -v input_csv -m 1 --pms %s" % csv_file)
         run_command("coverage run -a score.py -v input_csv -p math %s" % csv_file)
         run_command("coverage run -a score.py input_csv %s" % csv_file)
         run_command("coverage run -a score.py input_csv -i %s" % csv_file)
