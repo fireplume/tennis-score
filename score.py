@@ -284,8 +284,6 @@ def list_players_in_csv_format(tennis_league):
 
 def compute_and_show_standings(main_args, tennis_league, play_type):
     processor_type = ScoreProcessor
-    if play_type == PlayingEntity.PlayType.DOUBLES:
-        processor_type = DoublesScorePerPlayerProcessor
 
     s = processor_type(league=tennis_league,
                        points_per_match=main_args.points_per_match,
@@ -302,10 +300,10 @@ def compute_and_show_standings(main_args, tennis_league, play_type):
         printer.print_games(play_type, LeagueIndex(main_args.match_index))
     printer.print_rankings(play_type, "%s stats" % play_type, LeagueIndex(main_args.match_index))
 
-    if play_type == PlayingEntity.PlayType.DOUBLES:
-        logger.warning("Doubles stats for individual player not implemented")
-        # printer = LeagueDoublesStatsPerPlayerPrinter(tennis_league, main_args.player_filter)
-        # printer.print_rankings(play_type, "DOUBLES stats for each singles player", LeagueIndex(args.match_index))
+    # if play_type == PlayingEntity.PlayType.DOUBLES:
+    #     logger.warning("Doubles stats for individual player not implemented")
+    #     printer = LeagueDoublesStatsPerPlayerPrinter(tennis_league, main_args.player_filter)
+    #     printer.print_rankings(play_type, "DOUBLES stats for each singles player", LeagueIndex(main_args.match_index))
 
 
 def main(main_args):
@@ -334,12 +332,8 @@ if __name__ == "__main__":
         main(_args)
     except Exception as global_e:
         logger.error(str(global_e))
-
         if _args.verbose:
             import traceback
-
             traceback.print_exc()
-
         sys.exit(1)
-
     sys.exit(0)

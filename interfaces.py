@@ -100,7 +100,7 @@ class PlayingEntity(metaclass=ABCMeta):
         Sets the player rank for given match index. It is based on all results up to and including match index.
         """
         if rank < 1:
-            raise Exception("Rank must be positive and greater than or equal to 1, value given: %d" % rank)
+            raise ValueError("Rank must be positive and greater than or equal to 1, value given: %d" % rank)
         self._stats.set_data('ranking', rank, index)
 
     def set_match_points(self, index: LeagueIndex, points: float):

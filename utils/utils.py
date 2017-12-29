@@ -73,14 +73,14 @@ class Accepts:
                 if Accepts._DEBUG:
                     for i in range(0, len(args)):
                         if i > len(args_check)-1:
-                            raise AcceptsSignatureError("Decorator args signature doesn't match that of function")
+                            raise AcceptsSignatureError("Decorator args signature doesn't match that of function %s" % f.__name__)
                         if type(args[i]) != args_check[i] and \
                            not isinstance(args[i], args_check[i]):
                             raise TypeError("Parameter %d's type is wrong for %s, got '%s', expected a '%s'" %
                                             (i+1, f.__name__, type(args[i]), args_check[i].__name__))
                     for kw in kwargs:
                         if kw not in kwargs_check:
-                            raise AcceptsSignatureError("Decorator kwargs signature doesn't match that of function")
+                            raise AcceptsSignatureError("Decorator kwargs signature doesn't match that of function %s" % f.__name__)
 
                         if type(kwargs[kw]) != kwargs_check[kw] and \
                            not isinstance(kwargs[kw],  kwargs_check[kw]):

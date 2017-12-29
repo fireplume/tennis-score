@@ -1,7 +1,7 @@
 import sys
 
 from DoublesTeam import *
-from utils.exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError, UnforseenError
+from utils.exceptions import PlayingEntityAlreadyExistsError, PlayingEntityDoesNotExistError
 from utils.utils import LoggerHandler
 
 logger = LoggerHandler.get_instance().get_logger("League")

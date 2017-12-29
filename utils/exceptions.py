@@ -1,54 +1,53 @@
 class PlayingEntityDoesNotExistError(Exception):
     """ Trying to access a player who do not exist. """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PlayingEntityAlreadyExistsError(Exception):
     """ Trying to add a playing entity which already exists """
-    pass
-
-
-class InitError(Exception):
-    """ Trying to access a data structure which has not been initialized yet."""
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class OverwriteError(Exception):
     """ Trying to overwrite read-only data. """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class BackToTheFutureError(Exception):
     """ Trying to set information in the past when it's not allowed. """
-    pass
-
-
-class UnforseenError(Exception):
-    """ I really didn't expected that one... """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class SmartIndexError(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class AcceptsSignatureError(Exception):
     """
     Exception for type checking decorator
     """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class NoMatchPlayedYetError(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class ReadOnlyDataError(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class MissingIndexError(Exception):
     """
     Some functions must be called with keyword parameter 'index'
     """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

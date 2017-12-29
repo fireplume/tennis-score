@@ -154,6 +154,19 @@ class TestUtilsTypeChecker(unittest.TestCase):
         my_class = B(3.0)
         self._check_wrong_usage(my_class, TypeError)
 
+    def test_signature_error(self):
+        Accepts.enable()
+
+        @Accepts.accepts(str, int, a=str, b=int)
+        def foo(a: str, b: int, c=3.0):
+            pass
+
+        with self.assertRaises(AcceptsSignatureError):
+            foo('a', 3, 4.0)
+
+        with self.assertRaises(AcceptsSignatureError):
+            foo('a', 3, c=4.0)
+
 
 if __name__ == "__main__":
     unittest.main()
