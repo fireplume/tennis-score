@@ -98,10 +98,8 @@ class League:
         league_match_played = 0
         games_won = 0
         games_lost = 0
-        league_ppm_total = 0
 
         for player in self.iter_playing_entities(play_type):
-            player_ppm = player.get_average_points_per_match(index)
             player_matches_played = self.get_player_matches_played(index, player.get_name())
             if player_matches_played == 0:
                 continue
@@ -113,8 +111,6 @@ class League:
 
             games_won += player.get_cumulative_games_won(index)
             games_lost += player.get_cumulative_games_lost(index)
-
-            league_ppm_total += player_ppm * player_matches_played
 
         if data is not None:
             data['league_points'] = league_points
@@ -130,7 +126,7 @@ class League:
 
         try:
             # for the purpose of league average player average points per match, we take the full league match count
-            avg = league_ppm_total/league_match_played
+            avg = league_points/league_match_played
         except ZeroDivisionError:
             avg = 0
 
