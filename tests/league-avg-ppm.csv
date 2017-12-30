@@ -1,0 +1,10 @@
+New Player, name, level scoring factor, initial points
+NEW_PLAYER,player_a,1.0,0.0
+NEW_PLAYER,player_b,1.0,0.0
+NEW_PLAYER,player_c,1.0,0.0
+NEW_PLAYER,player_d,1.0,0.0
+
+Singles games, player 1, games won, player 2, games won
+SINGLES_GAME,player_a,1,player_b,0
+SINGLES_GAME,player_a,2,player_b,1
+SINGLES_GAME,player_a,2,player_b,4

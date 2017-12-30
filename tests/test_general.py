@@ -30,7 +30,8 @@ class TestGeneral(unittest.TestCase):
     def test_league_average_ppm(self):
         # read test csv
 
-        self.assertEqual(self.tennis_league.get_league_average_points_per_match(LeagueIndex(-1), PlayingEntity.PlayType.SINGLES), 5.0)
+        avg = self.tennis_league.get_league_average_points_per_match(LeagueIndex(-1), PlayingEntity.PlayType.SINGLES)
+        self.assertEqual(round(avg,2), 5.0)
 
     def test_playing_entity_smart_index_error(self):
         entity = self.tennis_league.get_playing_entity("player_a")
