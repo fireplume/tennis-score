@@ -108,7 +108,7 @@ class StatsPrinter:
         print('-'*len(header))
         print(header)
         for rank in sorted(rankings.keys()):
-            for entity in rankings[rank]:
+            for entity in sorted(rankings[rank]):
                 if not self._in_filter(entity):
                     continue
 
@@ -153,7 +153,7 @@ class StatsPrinter:
                                     games_lost=data['games_lost'],
                                     games_won_percent=games_won_percent))
 
-    def print_games(self,
+    def print_matches(self,
                     play_type: PlayingEntity.PlayType,
                     match_index=-1):
         print("----------------------------------------------------------------------")
@@ -161,9 +161,9 @@ class StatsPrinter:
         print("----------------------------------------------------------------------")
         index = 0
 
-        for game in self._league.iter_games(play_type):
+        for match in self._league.iter_matches(play_type):
             in_filter = False
-            for player in game.get_players_list():
+            for player in match.get_players_list():
                 if self._in_filter(player):
                     in_filter = True
                     break
@@ -173,7 +173,7 @@ class StatsPrinter:
             if not in_filter:
                 continue
 
-            print(game)
+            print(match)
 
             if match_index != -1 and index >= match_index:
                 break

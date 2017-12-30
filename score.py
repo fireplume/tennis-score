@@ -41,7 +41,7 @@ def parse_command_line(command_line_args=sys.argv[1:]):
     csv_parser.add_argument("--ppm", "--points-per-match",
                             dest="points_per_match",
                             type=int,
-                            help="Maximum points which can be earned per game, defaults to %d" %
+                            help="Maximum points which can be earned per match, defaults to %d" %
                                  DEFAULT_POINTS_PER_MATCH,
                             default=DEFAULT_POINTS_PER_MATCH)
 
@@ -62,7 +62,7 @@ def parse_command_line(command_line_args=sys.argv[1:]):
     csv_parser.add_argument("--rfbp", "--ranking-factor-break-in-period",
                             dest="ranking_factor_break_in_period",
                             type=int,
-                            help="Number of games before ranking factors have an impact. Defaults to %d games." %
+                            help="Number of matches before ranking factors have an impact. Defaults to %d matches." %
                                  RANKING_FACTOR_BREAK_IN_PERIOD,
                             default=RANKING_FACTOR_BREAK_IN_PERIOD)
 
@@ -165,7 +165,7 @@ The equations used to calculate points for a given match are:
     else
         earned_points = points * league_break_in_score_factor * level_scoring_factor
 
-The 'league_break_in_score_factor' is used to mitigate the impact of the first few games on ranking. You should
+The 'league_break_in_score_factor' is used to mitigate the impact of the first few matches on ranking. You should
 set it to a small value (=~ 0.1).
 
 Note how the diff_ranking_factor favors the underdog player in a match. If your average is small compared to your
@@ -173,12 +173,12 @@ opponent, '(self_avg/opponent_avg)' is going to be small and  ranking_diff_facto
 is going to give an interestingly bigger number than for your opponent. This can be tuned by adjusting 
 the 'ranking_diff_factor_constant' on the command line ("--rdfc", "--ranking-factor-break-in-period")
 
-Points are calculated considering only games played up to that moment in time. This means that the rankings after 'x'
+Points are calculated considering only matches played up to that moment in time. This means that the rankings after 'x'
 league matches only take into account points for the first 'x-1' league matches for all players at that moment.
 
-This also means that until all players have played the same number of games, the rankings may change as some players
-get to have played as many games as others. At the end of the season, if not all players have played the same number
-of games, it doesn't matter all that much as the average points per match is considered for rankings.
+This also means that until all players have played the same number of matches, the rankings may change as some players
+get to have played as many matches as others. At the end of the season, if not all players have played the same number
+of matches, it doesn't matter all that much as the average points per match is considered for rankings.
 
 PARAMETER DETAILS:
 
@@ -193,13 +193,13 @@ PARAMETER DETAILS:
     See equations for details on how it impacts ranking. Higher value favors underdog players during matches.
 
 "--rfbp", "--ranking-factor-break-in-period":
-    The ranking mechanism might give biased results for the initial games. Setting this option requires x number
+    The ranking mechanism might give biased results for the initial matches. Setting this option requires x number
     of matches be played by players in a match before the ranking algorithm kicks in. In the meantime, earned
     points are reduced significantly, see equations for details.
 
 "--lbsf", "--league-break-in-score-factor":
     Factor applied to points earned during the break in period. Should be small =~ 0.1. This is to mitigate the impact
-    of the initial games where rankings has not broken in yet.
+    of the initial matches where rankings has not broken in yet.
 
 "-i", "--ignore-ranking-factors":
     Whatever the options set, ranking factors are forced to 1. It doesn't impact the ranking break in period though.
@@ -244,7 +244,7 @@ The '-v' parameter must come before the sub command ('input_csv' or 'demo_csv')
 
     score.py -v input_csv demo.csv
 
-Emulate current point system based on games won vs games lost without consideration for performance on player level.
+Emulate current point system based on games won vs games lost without consideration ranking (diff)factor constants.
 
     score.py input_csv --ignore-ranking-factors --ranking-factor-break-in-period=0 demo.csv
 """
@@ -297,7 +297,7 @@ def list_players_in_csv_format(tennis_league):
     print("player if his level changes often and you want it reflected in the results.")
     print()
     print("You will get an error if you try to set a new player level for a league match index higher than")
-    print("the player has ever played. For example, if a player plays his very first game in the league's")
+    print("the player has ever played. For example, if a player plays his very first match in the league's")
     print("fifth match, you can't put an entry for this player for league index match 6, at least not")
     print("until he's played it; note that these entries must be put at the end of the CSV file.")
     print()
@@ -328,7 +328,7 @@ def compute_and_show_standings(main_args, tennis_league, play_type):
         printer = StatsPrinter(tennis_league, main_args.player_filter)
 
     if main_args.print_match_scores:
-        printer.print_games(play_type, LeagueIndex(main_args.match_index))
+        printer.print_matches(play_type, LeagueIndex(main_args.match_index))
     printer.print_rankings(play_type, "%s stats" % play_type, LeagueIndex(main_args.match_index))
 
 

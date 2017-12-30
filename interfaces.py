@@ -4,7 +4,7 @@ from Stats import *
 from utils.SmartIndex import *
 
 
-class BaseGame(metaclass=ABCMeta):
+class BaseMatch(metaclass=ABCMeta):
     @abstractmethod
     def get_name(self, entity: int):
         pass
@@ -37,7 +37,7 @@ class BaseGame(metaclass=ABCMeta):
 
 class PlayingEntity(metaclass=ABCMeta):
     """
-    To refer to a particular game entity, use name equal to "NAME1" for singles or "NAME1 and NAME2" for doubles.
+    To refer to a particular playing entity, use name equal to "NAME1" for singles or "NAME1 and NAME2" for doubles.
     See DOUBLES_NAME_FORMAT and get_name in this class for details.
     """
     DOUBLES_NAME_FORMAT = "{:12s} and {:12s}"
@@ -82,13 +82,13 @@ class PlayingEntity(metaclass=ABCMeta):
     def reset_points(self):
         self._stats.reset_data('match_points')
 
-    def add_game(self, game: BaseGame, index: LeagueIndex):
-        # Check name of playing_entity is involved in game
-        if not game.has_played(self._name):
-            raise Exception("%s has not played in match: %s" % (self._name, game))
+    def add_match(self, match: BaseMatch, index: LeagueIndex):
+        # Check name of playing_entity is involved in match
+        if not match.has_played(self._name):
+            raise Exception("%s has not played in match: %s" % (self._name, match))
 
-        games_won = game.get_games_won(self._name)
-        games_lost = game.get_games_lost(self._name)
+        games_won = match.get_games_won(self._name)
+        games_lost = match.get_games_lost(self._name)
 
         self._stats.set_match_results(games_won, games_lost, index)
 
@@ -105,7 +105,7 @@ class PlayingEntity(metaclass=ABCMeta):
         Sets the player earned points for given match index.
         """
         if not self._stats.index_exists(index):
-            raise SmartIndexError("No game played for %s" % str(index))
+            raise SmartIndexError("No match played for %s" % str(index))
         self._stats.set_data('match_points', points, league_index=index)
 
     def get_cumulative_games_won(self, index: SmartIndex):
@@ -159,7 +159,12 @@ class PlayingEntity(metaclass=ABCMeta):
         Added to allow sorting playing entities by name
         :return:
         """
-        return self.get_name() < other.get_name()
+        if isinstance(other, PlayingEntity):
+            return self.get_name() < other.get_name()
+        elif isinstance(other, str):
+            return self.get_name() < other
+        else:
+            raise NotImplementedError
 
     def __str__(self):
         return self.get_name()

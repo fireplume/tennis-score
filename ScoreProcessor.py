@@ -44,7 +44,7 @@ class ScoreProcessor:
         for entity in self._league.iter_playing_entities(play_type):
             player_matches_played = self._league.get_player_matches_played(league_match_index,
                                                                            entity.get_name())
-            # If player has not played any games, don't set rank
+            # If player has not played any matches, don't set rank
             if player_matches_played == 0:
                 players_points[0].append(entity)
                 continue
@@ -169,7 +169,7 @@ class ScoreProcessor:
                 compute_data['ranking_factors']['p2_diff_ranking_factor'] = 1
                 compute_data['ranking_factors']['league_break_in_score_factor'][2] = self._league_break_in_score_factor
 
-    def _set_points_data(self, compute_data, game, player1, player2):
+    def _set_points_data(self, compute_data, match, player1, player2):
         match_index_1 = PlayerIndex(compute_data['prior_match_played'][1])
         match_index_2 = PlayerIndex(compute_data['prior_match_played'][2])
 
@@ -177,8 +177,8 @@ class ScoreProcessor:
         compute_data['level_score_factor'][1] = player1.get_play_level_scoring_factor(match_index_1)
         compute_data['level_score_factor'][2] = player2.get_play_level_scoring_factor(match_index_2)
 
-        p1_won_games = game.get_games_won(player1.get_name())
-        p2_won_games = game.get_games_won(player2.get_name())
+        p1_won_games = match.get_games_won(player1.get_name())
+        p2_won_games = match.get_games_won(player2.get_name())
         total_games_played = p1_won_games + p2_won_games
 
         if total_games_played == 0:
@@ -236,8 +236,8 @@ class ScoreProcessor:
         prior_match_index = LeagueIndex(0)
         current_match_index = LeagueIndex(1)
 
-        # Process points for each game
-        for game in self._league.iter_games(play_type):
+        # Process points for each match
+        for match in self._league.iter_matches(play_type):
             if current_match_index > last_match_index:
                 break
 
@@ -245,13 +245,13 @@ class ScoreProcessor:
             compute_data['ranking_factors'] = dict()
             compute_data['play_type'] = play_type
 
-            playing_entity_1 = self._league.get_playing_entity(game.get_name(1))
-            playing_entity_2 = self._league.get_playing_entity(game.get_name(2))
+            playing_entity_1 = self._league.get_playing_entity(match.get_name(1))
+            playing_entity_2 = self._league.get_playing_entity(match.get_name(2))
 
             compute_data['prior_match_played'] = dict()
             for i in range(1, 3):
                 compute_data['prior_match_played'][i] = self._league.get_player_matches_played(prior_match_index.get_locked_copy(),
-                                                                                               game.get_name(i))
+                                                                                               match.get_name(i))
 
             # Are players in their breaking in mode?
             compute_data['ranking_breaking_in'] = dict()
@@ -265,7 +265,7 @@ class ScoreProcessor:
                                       playing_entity_2,
                                       compute_data)
 
-            self._set_points_data(compute_data, game, playing_entity_1, playing_entity_2)
+            self._set_points_data(compute_data, match, playing_entity_1, playing_entity_2)
 
             playing_entity_1.set_match_points(current_match_index.get_locked_copy(), compute_data['earned'][1])
             playing_entity_2.set_match_points(current_match_index.get_locked_copy(), compute_data['earned'][2])

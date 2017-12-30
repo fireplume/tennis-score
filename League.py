@@ -23,9 +23,9 @@ class League:
         self._playing_entity[PlayingEntity.PlayType.SINGLES] = set()
         self._playing_entity[PlayingEntity.PlayType.DOUBLES] = set()
 
-        self._games = dict()
-        self._games[PlayingEntity.PlayType.SINGLES] = dict()
-        self._games[PlayingEntity.PlayType.DOUBLES] = dict()
+        self._matches = dict()
+        self._matches[PlayingEntity.PlayType.SINGLES] = dict()
+        self._matches[PlayingEntity.PlayType.DOUBLES] = dict()
 
         self._name_to_entity = dict()
 
@@ -35,7 +35,7 @@ class League:
 
         League._SINGLETON = self
 
-    # Populating league and games
+    # Populating league and matches
 
     def add_playing_entity(self, playing_entity: PlayingEntity):
         if playing_entity.get_name() in self._name_to_entity:
@@ -45,33 +45,33 @@ class League:
         self._playing_entity[playing_entity.play_type].add(playing_entity)
         self._name_to_entity[playing_entity.get_name()] = playing_entity
 
-    def add_game(self, game: BaseGame):
-        p1_entity = self._name_to_entity[game.get_name(1)]
-        p2_entity = self._name_to_entity[game.get_name(2)]
+    def add_match(self, match: BaseMatch):
+        p1_entity = self._name_to_entity[match.get_name(1)]
+        p2_entity = self._name_to_entity[match.get_name(2)]
 
         # if p1_entity.play_type != p2_entity.play_type:
         #     raise AussieException("%s%s" %
-        #                           ("You can't mix singles and doubles in a Game object!",
+        #                           ("You can't mix singles and doubles in a Match object!",
         #                            "P1: %s P2: %s" % (p1_entity.get_name(), p2_entity.get_name())))
 
         play_type = p1_entity.play_type
         self._league_match_index[play_type] += 1
 
-        if self._league_match_index[play_type] in self._games[play_type].keys():
-            raise Exception("Internal error: game overwrite attempt at match index %d" %
+        if self._league_match_index[play_type] in self._matches[play_type].keys():
+            raise Exception("Internal error: match overwrite attempt at match index %d" %
                             self._league_match_index[play_type])
-        self._games[play_type][self._league_match_index[play_type].get_locked_copy()] = game
+        self._matches[play_type][self._league_match_index[play_type].get_locked_copy()] = match
 
-        # Add game to player objects for stats update
-        p1_entity.add_game(game, self._league_match_index[play_type])
-        p2_entity.add_game(game, self._league_match_index[play_type])
+        # Add match to player objects for stats update
+        p1_entity.add_match(match, self._league_match_index[play_type])
+        p2_entity.add_match(match, self._league_match_index[play_type])
 
     # Information
 
     def last_match_index(self, play_type: PlayingEntity.PlayType):
-        if len(self._games[play_type].keys()) == 0:
+        if len(self._matches[play_type].keys()) == 0:
             return LeagueIndex(-1)
-        return max(self._games[play_type].keys())
+        return max(self._matches[play_type].keys())
 
     def playing_entity_name_exists(self, playing_entity_name: str):
         if playing_entity_name.lower() in self._name_to_entity:
@@ -181,13 +181,13 @@ class League:
 
     # Iterators
 
-    def iter_games(self, play_type: PlayingEntity.PlayType):
+    def iter_matches(self, play_type: PlayingEntity.PlayType):
         """
-        Cycles over the games from oldest to newest for given play type
+        Cycles over the matches from oldest to newest for given play type
         """
-        for match_index in sorted(self._games[play_type].keys()):
-            yield self._games[play_type][match_index]
+        for match_index in sorted(self._matches[play_type].keys()):
+            yield self._matches[play_type][match_index]
 
     def iter_playing_entities(self, play_type: PlayingEntity.PlayType):
-        for entity in self._playing_entity[play_type]:
+        for entity in sorted(self._playing_entity[play_type]):
             yield entity

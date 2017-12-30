@@ -3,19 +3,19 @@ from interfaces import *
 from utils.exceptions import PlayingEntityDoesNotExistError
 
 
-class Game(BaseGame):
+class Match(BaseMatch):
     """
-    Game class to hold game results.
+    Match class to hold match results.
     """
     # LEAGUE must be set to a valid League object before being instantiated!
     LEAGUE = None
 
     def __init__(self, p1: str, p1_games_won: int, p2: str, p2_games_won: int):
-        if Game.LEAGUE is None:
+        if Match.LEAGUE is None:
             if League.get_instance() is None:
-                raise Exception("You must instantiate a league object before instantiating a Game object!")
+                raise Exception("You must instantiate a league object before instantiating a Match object!")
             else:
-                Game.LEAGUE = League.get_instance()
+                Match.LEAGUE = League.get_instance()
 
         self._players_list = set()
         self._play_type = PlayingEntity.PlayType.SINGLES
@@ -37,7 +37,7 @@ class Game(BaseGame):
         team_2_names = PlayingEntity.DOUBLES_NAME_RE.match(self._p2)
         if team_1_names is None and team_2_names or team_2_names is None and team_1_names:
             raise AussieException("%s%s" %
-                                  ("You can't mix singles and doubles in a Game object!",
+                                  ("You can't mix singles and doubles in a Match object!",
                                    "P1: %s P2: %s" % (self._p1, self._p2)))
 
         # Add doubles players names to the player list
@@ -53,13 +53,13 @@ class Game(BaseGame):
         self._players_list.add(self._p2.lower())
 
         if len(self._players_list) % 2 == 1:
-            raise PlayingAgainstSelf("Can't set up a game where a player plays against himself! Game players: %s" %
+            raise PlayingAgainstSelf("Can't set up a match where a player plays against himself! Match players: %s" %
                                      str(self._players_list))
 
         exception_string = []
-        if not Game.LEAGUE.playing_entity_name_exists(self._p1):
+        if not Match.LEAGUE.playing_entity_name_exists(self._p1):
             exception_string.append("Playing entity '%s' is not registered with the league!" % self._p1)
-        if not Game.LEAGUE.playing_entity_name_exists(self._p2):
+        if not Match.LEAGUE.playing_entity_name_exists(self._p2):
             exception_string.append("Playing entity '%s' is not registered with the league!" % self._p2)
         if exception_string:
             raise PlayingEntityDoesNotExistError("\n".join(exception_string))
@@ -86,17 +86,17 @@ class Game(BaseGame):
 
     def get_name(self, entity: int):
         if entity != 1 and entity != 2:
-            raise Exception("Game.get_name: entity must be either 1 or 2, value given: %d" % entity)
+            raise Exception("Match.get_name: entity must be either 1 or 2, value given: %d" % entity)
         return self._data['name'][entity]
 
     def get_games_won(self, entity_name: str):
         if not self.has_played(entity_name):
-            raise Exception("Game.get_games_won: player %s didn't play in this game" % entity_name)
+            raise Exception("Match.get_games_won: player %s didn't play in this match" % entity_name)
         return self._data['games_won'][entity_name]
 
     def get_games_lost(self, entity_name: str):
         if not self.has_played(entity_name):
-            raise Exception("Game.get_games_won: player %s didn't play in this game" % entity_name)
+            raise Exception("Match.get_games_won: player %s didn't play in this match" % entity_name)
         return self._data['games_lost'][entity_name]
 
     def has_played(self, entity_name: str, entity_name2=""):

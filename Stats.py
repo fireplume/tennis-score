@@ -129,7 +129,7 @@ class Stats:
         if self._index_cache.number_of_indexes(IndexType.LEAGUE) != 0:
             latest_index = self._index_cache.max_index(IndexType.LEAGUE)
             if league_match_index < latest_index:
-                raise BackToTheFutureError("Can't rewrite past, trying to set results for a game index"
+                raise BackToTheFutureError("Can't rewrite past, trying to set results for a match index"
                                            "lower than the latest.")
 
         p_index = self._player_match_index.get_locked_copy()

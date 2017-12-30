@@ -1,4 +1,4 @@
-from Game import *
+from Match import *
 import League
 from Player import *
 
@@ -13,7 +13,7 @@ DOUBLES_GAME_ENTRY_FORMAT = "DOUBLES_GAME,{player1:s},{player2:s},{games_won_a:d
                             "{games_won_b:d}"
 SINGLES_NEW_LEVEL_ENTRY_FORMAT = "NEW_PLAYER_LEVEL,{name:s},{league_match_index:d},{new_level:.3f}"
 DOUBLES_TEAM_NEW_LEVEL_ENTRY_FORMAT = "NEW_TEAM_LEVEL,{name1:s},{name2:s},{league_match_index:d},{new_level:.3f}"
-# TODO: Add support for interweaving game results with player level adjustments so as to not have to specify
+# TODO: Add support for interweaving match results with player level adjustments so as to not have to specify
 # TODO: league match index. Don't forget to adjust regex in csv parsing.
 
 
@@ -47,7 +47,7 @@ def init_league(csv_file, tennis_league):
     """
     Required format for the CSV file:
     See top of file definitions.
-    Player entries must be listed first, then singles or doubles games.
+    Player entries must be listed first, then singles or doubles matches.
     """
 
     new_player_re = re.compile(r"^NEW_PLAYER,(\S+?),(\d+|(?:\d+\.\d*)),(\d+|(?:\d+\.\d*))$")
@@ -105,7 +105,7 @@ def init_league(csv_file, tennis_league):
                         team1 = add_doubles_team(tennis_league, player1, player2)
                         team2 = add_doubles_team(tennis_league, player3, player4)
 
-                    tennis_league.add_game(Game(team1.get_name(), games_won_1, team2.get_name(), games_won_2))
+                    tennis_league.add_match(Match(team1.get_name(), games_won_1, team2.get_name(), games_won_2))
 
                 elif singles_match:
                     player1 = cleanup_name(singles_match.group(1))
@@ -114,11 +114,11 @@ def init_league(csv_file, tennis_league):
                     games_won_2 = int(singles_match.group(4))
 
                     try:
-                        tennis_league.add_game(Game(player1, games_won_1, player2, games_won_2))
+                        tennis_league.add_match(Match(player1, games_won_1, player2, games_won_2))
                     except PlayingEntityDoesNotExistError:
                         add_player(tennis_league, player1)
                         add_player(tennis_league, player2)
-                        tennis_league.add_game(Game(player1, games_won_1, player2, games_won_2))
+                        tennis_league.add_match(Match(player1, games_won_1, player2, games_won_2))
                 elif updated_doubles_team_level:
                     entity = tennis_league.get_playing_entity(cleanup_name(updated_doubles_team_level.group(1)))
                     entity2 = tennis_league.get_playing_entity(cleanup_name(updated_doubles_team_level.group(2)))
@@ -149,29 +149,29 @@ def dump_sample(seed: int):
         data['initial_points'] = random.random()*10 + 5.0
         return data
 
-    def generate_singles_game(a_players_list: list):
-        game = dict()
+    def generate_singles_match(a_players_list: list):
+        match = dict()
         players_list = copy.deepcopy(a_players_list)
-        game['player1'] = players_list[random.randint(0, len(players_list)-1)]
-        players_list.remove(game['player1'])
-        game['player2'] = players_list[random.randint(0, len(players_list)-1)]
-        game['games_won_1'] = random.randint(0, 8)
-        game['games_won_2'] = random.randint(0, 8)
-        return game
+        match['player1'] = players_list[random.randint(0, len(players_list)-1)]
+        players_list.remove(match['player1'])
+        match['player2'] = players_list[random.randint(0, len(players_list)-1)]
+        match['games_won_1'] = random.randint(0, 8)
+        match['games_won_2'] = random.randint(0, 8)
+        return match
 
-    def generate_doubles_game(a_players_list: list):
-        game = dict()
+    def generate_doubles_match(a_players_list: list):
+        match = dict()
         players_list = copy.deepcopy(a_players_list)
-        game['player1'] = players_list[random.randint(0, len(players_list)-1)]
-        players_list.remove(game['player1'])
-        game['player2'] = players_list[random.randint(0, len(players_list)-1)]
-        players_list.remove(game['player2'])
-        game['player3'] = players_list[random.randint(0, len(players_list)-1)]
-        players_list.remove(game['player3'])
-        game['player4'] = players_list[random.randint(0, len(players_list)-1)]
-        game['games_won_a'] = random.randint(0, 8)
-        game['games_won_b'] = random.randint(0, 8)
-        return game
+        match['player1'] = players_list[random.randint(0, len(players_list)-1)]
+        players_list.remove(match['player1'])
+        match['player2'] = players_list[random.randint(0, len(players_list)-1)]
+        players_list.remove(match['player2'])
+        match['player3'] = players_list[random.randint(0, len(players_list)-1)]
+        players_list.remove(match['player3'])
+        match['player4'] = players_list[random.randint(0, len(players_list)-1)]
+        match['games_won_a'] = random.randint(0, 8)
+        match['games_won_b'] = random.randint(0, 8)
+        return match
 
     def generate_singles_level_change(a_players_list: list):
         new_level = dict()
@@ -197,18 +197,18 @@ def dump_sample(seed: int):
 
     # Players
     print("# New Player, Name, Level Scoring Factor, Initial Points")
-    for p in players_sub_list:
+    for p in sorted(players_sub_list):
         print(PLAYER_ENTRY_FORMAT.format(**generate_player(p)))
 
-    # Singles Games
-    print("# Singles Games, Player 1, Games Won, Player 2, Games Won")
+    # Singles Matches
+    print("# Singles Matches, Player 1, Games Won, Player 2, Games Won")
     for i in range(0, max_match_index):
-        print(SINGLES_GAME_ENTRY_FORMAT.format(**generate_singles_game(players)))
+        print(SINGLES_GAME_ENTRY_FORMAT.format(**generate_singles_match(players)))
 
-    # Doubles Games
-    print("# Doubles Games, Player 1, Player 2, Games Won, Player 3, Player 4, Games Won")
+    # Doubles Matches
+    print("# Doubles Matches, Player 1, Player 2, Games Won, Player 3, Player 4, Games Won")
     for i in range(0, max_match_index):
-        print(DOUBLES_GAME_ENTRY_FORMAT.format(**generate_doubles_game(players)))
+        print(DOUBLES_GAME_ENTRY_FORMAT.format(**generate_doubles_match(players)))
 
     # Singles Level Adjustment
     print("# New Player Level, Name, League Match Index To Take Effect, New Level(Scoring Factor)")
@@ -220,7 +220,7 @@ def dump_sample(seed: int):
     for i in range(0, 4):
         print(DOUBLES_TEAM_NEW_LEVEL_ENTRY_FORMAT.format(**generate_doubles_level_change(players)))
 
-    # Generate some originally unlisted player doubles games
+    # Generate some originally unlisted player doubles matches
     print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="math", player2="julie", games_won_a=4, player3="anika",
                                            player4="rick", games_won_b=4))
     print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="RPL1", player2="julie", games_won_a=4, player3="anika",
