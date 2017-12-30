@@ -56,7 +56,8 @@ class League:
         self._league_match_index[play_type] += 1
 
         if self._league_match_index[play_type] in self._games[play_type].keys():
-            raise Exception("Internal error: game overwrite attempt at match index %d" % self._league_match_index[play_type])
+            raise Exception("Internal error: game overwrite attempt at match index %d" %
+                            self._league_match_index[play_type])
         self._games[play_type][self._league_match_index[play_type].get_locked_copy()] = game
 
         # Add game to player objects for stats update
@@ -173,7 +174,8 @@ class League:
         team_name = DoublesTeam.get_doubles_team_name_from_player_names(player_name_1, player_name_2)
         if team_name in self._name_to_entity:
             return self._name_to_entity[team_name]
-        raise PlayingEntityDoesNotExistError("Team composed of %s and %s does not exist!" % (player_name_1, player_name_2))
+        raise PlayingEntityDoesNotExistError("Team composed of %s and %s does not exist!" % (player_name_1,
+                                                                                             player_name_2))
 
     # Iterators
 
@@ -187,4 +189,3 @@ class League:
     def iter_playing_entities(self, play_type: PlayingEntity.PlayType):
         for entity in self._playing_entity[play_type]:
             yield entity
-

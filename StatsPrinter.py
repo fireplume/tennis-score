@@ -4,9 +4,10 @@ from League import *
 
 
 class StatsPrinter:
-    def __init__(self, league: League, player_filter: list):
+    def __init__(self, league: League, player_filter=[]):
         self._league = league
         self._player_filter = player_filter
+        self._name_formatter = lambda name: name
 
     def _get_largest_score_width(self,
                                  index: LeagueIndex,
@@ -125,7 +126,7 @@ class StatsPrinter:
                 ppm = points/int(match_played)
 
                 print(ranking_format.format(rank=rank,
-                                            name=entity.get_name(),
+                                            name=self._name_formatter(entity.get_name()),
                                             play_level=entity.get_play_level_scoring_factor(match_played),
                                             ppm=ppm,
                                             points=points,
@@ -179,21 +180,41 @@ class StatsPrinter:
         print()
 
 
-class LeagueDoublesStatsPerPlayerPrinter(StatsPrinter):
-    def __init__(self, tennis_league: League, player_filter: list):
-        super(LeagueDoublesStatsPerPlayerPrinter, self).__init__(tennis_league, player_filter)
+class CsvStatsPrinter(StatsPrinter):
+    def __init__(self, league: League, player_filter=[]):
+        super(CsvStatsPrinter, self).__init__(league, player_filter)
+        self._name_formatter = CsvStatsPrinter.doubles_team_name_splitter
 
-    def _process_rankings(self,
-                          play_type: PlayingEntity.PlayType,
-                          match_index: LeagueIndex,
-                          rankings: dict):
-        raise NotImplementedError()
-        # for playing_entity in self._league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
-        #     player_index = self._league.get_player_matches_played(match_index,
-        #                                                           playing_entity.get_name())
-        #     r = playing_entity.get_ranking(player_index, PlayingEntity.PlayType.DOUBLES)
-        #
-        #     if r not in rankings:
-        #         rankings[r] = []
-        #
-        #     rankings[r].append(playing_entity)
+    @staticmethod
+    def doubles_team_name_splitter(name):
+        m = PlayingEntity.DOUBLES_NAME_RE.match(name)
+        if m:
+            return "%s,%s" % (m.group(1).strip(), m.group(2).strip())
+        else:
+            return name
+
+    def _format_setup(self,
+                      play_type: PlayingEntity.PlayType,
+                      index: LeagueIndex,
+                      rankings: dict):
+
+        if play_type == PlayingEntity.PlayType.SINGLES:
+            headers = ["Rank", "Name", "Play Level", "Points/Match", "Points", "Matches Played", "Games Won",
+                       "Games Lost", "% games won"]
+        else:
+            headers = ["Rank", "Name1,Name2", "Play Level", "Points/Match", "Points", "Matches Played", "Games Won",
+                       "Games Lost", "% games won"]
+
+        header_format_str = "{:s},{:s},{:s},{:s},{:s},{:s},{:s},{:s},{:s}"
+        header_str = header_format_str.format(*headers)
+        rank_format = "{rank:<d},{name:<s},{play_level:>.3f},{ppm:.3f}," + \
+                      "{points:>.3f},{match_played:<d},{games_won:<d}," + \
+                      "{games_lost:<d},{games_won_percent:>.3f}"
+
+        return header_str, rank_format
+
+    def print_rankings(self,
+                       play_type: PlayingEntity.PlayType,
+                       title: str,
+                       index=LeagueIndex(-1)):
+        super(CsvStatsPrinter, self).print_rankings(play_type, title, index)
