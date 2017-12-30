@@ -2,15 +2,17 @@ from Game import *
 import League
 from Player import *
 
-REPLACEMENT_PLAYER_PREFIX = 'RPL'
+logger = LoggerHandler.get_instance().get_logger("CSV")
+
+REPLACEMENT_PLAYER_PREFIX_TOKENS = ['*', 'RPL']
 
 # CSV FILE FORMAT REQUIREMENTS, run score.py --demo-csv for a sample.
-PLAYER_ENTRY_FORMAT = "NEW_PLAYER,{name:s},{level_scoring_factor:f},{initial_points:f}"
+PLAYER_ENTRY_FORMAT = "NEW_PLAYER,{name:s},{level_scoring_factor:.3f},{initial_points:.3f}"
 SINGLES_GAME_ENTRY_FORMAT = "SINGLES_GAME,{player1:s},{games_won_1:d},{player2:s},{games_won_2:d}"
 DOUBLES_GAME_ENTRY_FORMAT = "DOUBLES_GAME,{player1:s},{player2:s},{games_won_a:d},{player3:s},{player4:s}," + \
                             "{games_won_b:d}"
-SINGLES_NEW_LEVEL_ENTRY_FORMAT = "NEW_PLAYER_LEVEL,{name:s},{league_match_index:d},{new_level:f}"
-DOUBLES_TEAM_NEW_LEVEL_ENTRY_FORMAT = "NEW_TEAM_LEVEL,{name1:s},{name2:s},{league_match_index:d},{new_level:f}"
+SINGLES_NEW_LEVEL_ENTRY_FORMAT = "NEW_PLAYER_LEVEL,{name:s},{league_match_index:d},{new_level:.3f}"
+DOUBLES_TEAM_NEW_LEVEL_ENTRY_FORMAT = "NEW_TEAM_LEVEL,{name1:s},{name2:s},{league_match_index:d},{new_level:.3f}"
 # TODO: Add support for interweaving game results with player level adjustments so as to not have to specify
 # TODO: league match index. Don't forget to adjust regex in csv parsing.
 
@@ -62,9 +64,17 @@ def init_league(csv_file, tennis_league):
             line = line.strip()
             line = re.sub(r'\s+', '', line)
 
+            if line.startswith("#"):
+                continue
+
             try:
-                if REPLACEMENT_PLAYER_PREFIX in line or REPLACEMENT_PLAYER_PREFIX.lower() in line:
-                    logger.info("CSV entry '%s' skipped as a replacement played" % line)
+                next_line = False
+                for token in REPLACEMENT_PLAYER_PREFIX_TOKENS:
+                    if token in line.lower():
+                        logger.info("Entry '%s' skipped as a replacement played" % line)
+                        next_line = True
+                        break
+                if next_line:
                     continue
 
                 new_player = new_player_re.fullmatch(line)
@@ -122,8 +132,9 @@ def init_league(csv_file, tennis_league):
                 elif line != "":
                     logger.debug("Following line (csv line number:%d) skipped: %s" % (line_nb, line))
             except Exception as e:
-                logger.error("ERROR: Line %d in csv. %s" % (line_nb, str(e)))
-                raise Exception()
+                error_msg = "\n\tERROR: Line %d in csv. %s.\n\t" % (line_nb, str(e)) + \
+                            "ERROR: You may want to remove the line if you don't need it."
+                raise Exception(error_msg)
 
 
 def dump_sample(seed: int):
@@ -185,30 +196,32 @@ def dump_sample(seed: int):
     players_sub_list = ["math", "andrew", "jessica", "carolina"]
 
     # Players
-    print("New Player, name, level scoring factor, initial points")
+    print("# New Player, Name, Level Scoring Factor, Initial Points")
     for p in players_sub_list:
         print(PLAYER_ENTRY_FORMAT.format(**generate_player(p)))
 
     # Singles Games
-    print("Singles games, player 1, games won, player 2, games won")
+    print("# Singles Games, Player 1, Games Won, Player 2, Games Won")
     for i in range(0, max_match_index):
         print(SINGLES_GAME_ENTRY_FORMAT.format(**generate_singles_game(players)))
 
     # Doubles Games
-    print("Doubles games, player 1, player 2, games won, player 3, player 4, games won")
+    print("# Doubles Games, Player 1, Player 2, Games Won, Player 3, Player 4, Games Won")
     for i in range(0, max_match_index):
         print(DOUBLES_GAME_ENTRY_FORMAT.format(**generate_doubles_game(players)))
 
     # Singles Level Adjustment
-    print("New player level, Name, league match index to take effect, new level(scoring factor)")
+    print("# New Player Level, Name, League Match Index To Take Effect, New Level(Scoring Factor)")
     for i in range(0, 4):
         print(SINGLES_NEW_LEVEL_ENTRY_FORMAT.format(**generate_singles_level_change(players)))
 
     # Doubles Team Level Adjustment
-    print("New team level, Name, league match index to take effect, new level(scoring factor)")
+    print("# New Team Level, Name, League Match Index To Take Effect, New Level(Scoring Factor)")
     for i in range(0, 4):
         print(DOUBLES_TEAM_NEW_LEVEL_ENTRY_FORMAT.format(**generate_doubles_level_change(players)))
 
     # Generate some originally unlisted player doubles games
-    print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="math", player2="julie", games_won_a=4, player3="anika", player4="rick", games_won_b=4))
-    print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="RPL1", player2="julie", games_won_a=4, player3="anika", player4="rick", games_won_b=4))
+    print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="math", player2="julie", games_won_a=4, player3="anika",
+                                           player4="rick", games_won_b=4))
+    print(DOUBLES_GAME_ENTRY_FORMAT.format(player1="RPL1", player2="julie", games_won_a=4, player3="anika",
+                                           player4="rick", games_won_b=4))

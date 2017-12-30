@@ -11,6 +11,8 @@ score = importlib.import_module("score")
 interfaces = importlib.import_module("interfaces")
 League = importlib.import_module("League")
 Player = importlib.import_module("Player")
+DoublesTeam = importlib.import_module("DoublesTeam")
+Game = importlib.import_module("Game")
 
 from interfaces import *
 
@@ -49,6 +51,33 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual(p.get_cumulative_points(LeagueIndex(1)), 0.0)
         self.assertEqual(p.get_average_points_per_match(LeagueIndex(1)), 0.0)
         self.assertEqual(p.get_match_points(LeagueIndex(1)), 0.0)
+
+    def test_aussie_match(self):
+        pb = self.tennis_league.get_playing_entity("player_b")
+        pc = self.tennis_league.get_playing_entity("player_c")
+        d = DoublesTeam.DoublesTeam(pb, pc, 1.0, 1.0)
+        self.tennis_league.add_playing_entity(d)
+        with self.assertRaises(AussieException):
+            Game.Game("player_a", 0, PlayingEntity.DOUBLES_NAME_FORMAT.format("player_b", "player_c"), 0)
+
+    def test_singles_play_yourself(self):
+        with self.assertRaises(PlayingAgainstSelf):
+            Game.Game("player_a", 0, "player_a", 0)
+
+    def test_doubles_play_yourself(self):
+        pa = self.tennis_league.get_playing_entity("player_a")
+        pb = self.tennis_league.get_playing_entity("player_b")
+        pc = self.tennis_league.get_playing_entity("player_c")
+
+        d = DoublesTeam.DoublesTeam(pa, pb, 1.0, 1.0)
+        self.tennis_league.add_playing_entity(d)
+
+        d = DoublesTeam.DoublesTeam(pb, pc, 1.0, 1.0)
+        self.tennis_league.add_playing_entity(d)
+
+        with self.assertRaises(PlayingAgainstSelf):
+            Game.Game(PlayingEntity.DOUBLES_NAME_FORMAT.format("player_a", "player_b"), 0,
+                      PlayingEntity.DOUBLES_NAME_FORMAT.format("player_b", "player_c"), 0)
 
 
 if __name__ == "__main__":

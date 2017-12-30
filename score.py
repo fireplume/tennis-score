@@ -21,7 +21,7 @@ LEAGUE_BREAK_IN_SCORE_FACTOR = 0.1
 
 
 def parse_command_line(command_line_args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description='Tennis scoring program proof of concept',
+    parser = argparse.ArgumentParser(description='Tennis scoring program for leagues with players of different levels',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-v", "--verbose",
@@ -91,13 +91,13 @@ def parse_command_line(command_line_args=sys.argv[1:]):
     csv_parser.add_argument("--doubles",
                             dest="doubles",
                             action="store_true",
-                            help="Print results for doubles, default to singles.",
+                            help="Print results for doubles, defaults to singles.",
                             default=False)
 
     csv_parser.add_argument("-p", "--player-filter",
                             dest="player_filter",
                             action='append',
-                            help="Print information only for selected players, can be used multiple times (needs -v)",
+                            help="Print information only for selected players, can be used multiple times",
                             default=[])
 
     csv_parser.add_argument("--list-players",
@@ -127,8 +127,9 @@ def parse_command_line(command_line_args=sys.argv[1:]):
                                  help="Dumped demo CSV is randomized with this integer seed. Defaults to 0.",
                                  default=0)
 
-    parser.epilog = """Demo program for processing scores in a league with players of varied levels. You can generate
-demo data by running 'score.py demo_csv --seed 0 > test.csv' and then running 'score.py input_csv test.csv'.
+    parser.epilog = """Program for processing scores in a league with players of varied levels. You can generate
+demo data by running 'score.py demo_csv --seed 0 > test.csv'. Then running 'score.py input_csv test.csv' will
+show you the kind of output you can get.
 
 This program makes a clear distinction between a match and a game, so pay attention to the wording.
 
@@ -280,11 +281,31 @@ Emulate current point system based on games won vs games lost without considerat
 
 def list_players_in_csv_format(tennis_league):
     print()
+    print("Change the following and put it at the TOP of your csv file to set player's")
+    print("initial level (scoring factor) and initial points.")
+    print()
+    print("New player, Name, Initial level(scoring factor), Initial points")
+    for player in tennis_league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
+        score_factor = player.get_play_level_scoring_factor(LeagueIndex(0))
+        print(importer.csv.PLAYER_ENTRY_FORMAT.format(name=player.get_name(),
+                                                      level_scoring_factor=round(score_factor,2),
+                                                      initial_points=1))
+
+    print()
+    print("Change the following and put it at the BOTTOM of your csv file to set new player levels to take")
+    print("effect at the specified league index match and on. You can add multiple entries for the same")
+    print("player if his level changes often and you want it reflected in the results.")
+    print()
+    print("You will get an error if you try to set a new player level for a league match index higher than")
+    print("the player has ever played. For example, if a player plays his very first game in the league's")
+    print("fifth match, you can't put an entry for this player for league index match 6, at least not")
+    print("until he's played it; note that these entries must be put at the end of the CSV file.")
+    print()
     print("New player level, Name, league match index to take effect, new level(scoring factor)")
     for player in tennis_league.iter_playing_entities(PlayingEntity.PlayType.SINGLES):
         score_factor = player.get_play_level_scoring_factor(LeagueIndex(0))
         print(importer.csv.SINGLES_NEW_LEVEL_ENTRY_FORMAT.format(name=player.get_name(),
-                                                                 new_level=score_factor,
+                                                                 new_level=round(score_factor,2),
                                                                  league_match_index=1))
 
 

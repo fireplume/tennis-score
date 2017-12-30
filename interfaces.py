@@ -71,9 +71,6 @@ class PlayingEntity(metaclass=ABCMeta):
 
     def update_play_level_scoring_factor(self, play_level_scoring_factor: float,
                                          index: LeagueIndex):
-        if not (0.0 < play_level_scoring_factor <= 1.0):
-            raise Exception("Play level scoring factor should be: '0 < value <= 1'")
-
         self._stats.set_data('level_scoring_factor', play_level_scoring_factor, index)
 
     def get_play_level_scoring_factor(self, index: SmartIndex):
@@ -108,7 +105,7 @@ class PlayingEntity(metaclass=ABCMeta):
         Sets the player earned points for given match index.
         """
         if not self._stats.index_exists(index):
-            raise SmartIndexError("No game set for %s" % str(index))
+            raise SmartIndexError("No game played for %s" % str(index))
         self._stats.set_data('match_points', points, league_index=index)
 
     def get_cumulative_games_won(self, index: SmartIndex):

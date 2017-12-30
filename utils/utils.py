@@ -76,7 +76,7 @@ class Accepts:
                             raise AcceptsSignatureError("Decorator args signature doesn't match that of function %s" % f.__name__)
                         if type(args[i]) != args_check[i] and \
                            not isinstance(args[i], args_check[i]):
-                            raise TypeError("Parameter %d's type is wrong for %s, got '%s', expected a '%s'" %
+                            raise TypeError("Parameter %d's type is wrong for %s, got '%s', expected '%s'" %
                                             (i+1, f.__name__, type(args[i]), args_check[i].__name__))
                     for kw in kwargs:
                         if kw not in kwargs_check:

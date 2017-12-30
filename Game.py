@@ -35,8 +35,10 @@ class Game(BaseGame):
         # Extract player's names from the entity's names in case it's a doubles match
         team_1_names = PlayingEntity.DOUBLES_NAME_RE.match(self._p1)
         team_2_names = PlayingEntity.DOUBLES_NAME_RE.match(self._p2)
-        if team_1_names and not team_2_names or not team_2_names and team_1_names:
-            raise Exception("Playing entity caters to different match type '%s' vs '%s'" % (self._p1, self._p2))
+        if team_1_names is None and team_2_names or team_2_names is None and team_1_names:
+            raise AussieException("%s%s" %
+                                  ("You can't mix singles and doubles in a Game object!",
+                                   "P1: %s P2: %s" % (self._p1, self._p2)))
 
         # Add doubles players names to the player list
         if team_1_names:
@@ -49,6 +51,10 @@ class Game(BaseGame):
         # Add singles players' names or doubles' team names to the list too
         self._players_list.add(self._p1.lower())
         self._players_list.add(self._p2.lower())
+
+        if len(self._players_list) % 2 == 1:
+            raise PlayingAgainstSelf("Can't set up a game where a player plays against himself! Game players: %s" %
+                                     str(self._players_list))
 
         exception_string = []
         if not Game.LEAGUE.playing_entity_name_exists(self._p1):

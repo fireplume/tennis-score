@@ -229,7 +229,7 @@ class SmartIndexCache:
                 return LeagueIndex(0)
 
         if len(self._index_to_index_map) == 0:
-            raise NoMatchPlayedYetError("No stats were entered yet.")
+            raise NoMatchPlayedYetError("No match played yet for that index (%s)" % index)
 
         if index == -1:
             return max(self._index_cache[index_type])
@@ -245,7 +245,7 @@ class SmartIndexCache:
         else:
             r = self._index_to_index_map[index]
             if r.index_type != index_type:
-                raise SmartIndexError("Can't find %s index for %s" % (str(index_type), str(index)))
+                raise SmartIndexError("Can't find %s for %s" % (str(index_type), str(index)))
             return r
 
     def __len__(self):

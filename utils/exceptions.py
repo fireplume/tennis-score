@@ -51,3 +51,17 @@ class MissingIndexError(Exception):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class AussieException(Exception):
+    """
+    Singles and doubles mixed
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class PlayingAgainstSelf(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+

@@ -39,7 +39,8 @@ class League:
 
     def add_playing_entity(self, playing_entity: PlayingEntity):
         if playing_entity.get_name() in self._name_to_entity:
-            raise PlayingEntityAlreadyExistsError("Player already exist")
+            raise PlayingEntityAlreadyExistsError("Trying to add a player who already exists: %s" %
+                                                  playing_entity.get_name())
 
         self._playing_entity[playing_entity.play_type].add(playing_entity)
         self._name_to_entity[playing_entity.get_name()] = playing_entity
@@ -48,9 +49,10 @@ class League:
         p1_entity = self._name_to_entity[game.get_name(1)]
         p2_entity = self._name_to_entity[game.get_name(2)]
 
-        if p1_entity.play_type != p2_entity.play_type:
-            print("ERROR: Trying to add game between %s and %s" % (game.get_name(1), game.get_name(2)))
-            raise Exception("You can't mix singles and doubles in a Game object!")
+        # if p1_entity.play_type != p2_entity.play_type:
+        #     raise AussieException("%s%s" %
+        #                           ("You can't mix singles and doubles in a Game object!",
+        #                            "P1: %s P2: %s" % (p1_entity.get_name(), p2_entity.get_name())))
 
         play_type = p1_entity.play_type
         self._league_match_index[play_type] += 1

@@ -13,7 +13,7 @@ class StatsData(dict):
 
         self._tag = tag
         if data_type != int and data_type != float:
-            raise TypeError("StatsData only support int and float")
+            raise TypeError("StatsData only supports 'int' and 'float'")
         self._data_type = data_type
 
         # Extendability means that if the index for which the data is requested doesn't exist,
@@ -115,7 +115,7 @@ class Stats:
 
     def reset_data(self, tag: str):
         if tag != 'match_points' and tag != 'ranking':
-            raise Exception("You can't reset data other than 'match_points' and 'ranking'")
+            raise Exception("You can't reset data other than for 'match_points' and 'ranking'")
         self._stats_data[tag].reset()
 
     @Accepts.accepts(object, int, int, LeagueIndex, games_won=int, games_lost=int, league_match_index=LeagueIndex)
@@ -130,7 +130,7 @@ class Stats:
             latest_index = self._index_cache.max_index(IndexType.LEAGUE)
             if league_match_index < latest_index:
                 raise BackToTheFutureError("Can't rewrite past, trying to set results for a game index"
-                                           "lower than the latest")
+                                           "lower than the latest.")
 
         p_index = self._player_match_index.get_locked_copy()
         l_index = league_match_index.get_locked_copy()
